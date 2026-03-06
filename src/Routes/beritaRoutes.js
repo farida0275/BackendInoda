@@ -1,7 +1,7 @@
 import express from 'express';
 import { getBeritaList, getBeritaDetail, getBeritaByStatus, createNewBerita, updateBeritaData, deleteBeritaData } from '../controller/beritaController.js';
-import { authenticate } from '../middleware/auth.js';
-import { upload, uploadToCloudinary } from '../middleware/upload.js';
+import { authenticate } from '../Middleware/auth.js';
+import { upload, uploadToCloudinary } from '../Middleware/upload.js';
 
 const router = express.Router();
 
