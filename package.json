@@ -8,7 +8,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "server": "node index.js",
     "dev": "nodemon index.js",
-    "start": "node ./index.js"
+    "start": "node ./index.js",
+    "build": "esbuild api/index.js --bundle --platform=node --outfile=api/index.js --allow-overwrite"
   },
   "author": "galuh farida",
   "license": "ISC",

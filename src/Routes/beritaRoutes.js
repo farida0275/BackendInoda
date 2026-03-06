@@ -1,5 +1,5 @@
 import express from 'express';
-import { getBeritaList, getBeritaDetail, getBeritaByStatus, createNewBerita, updateBeritaData, deleteBeritaData } from '../controller/beritaController.js';
+import { getBeritaList, getBeritaDetail, getBeritaByStatus, createNewBerita, updateBeritaData, deleteBeritaData } from '../Controller/beritaController.js';
 import { authenticate } from '../Middleware/auth.js';
 import { upload, uploadToCloudinary } from '../Middleware/upload.js';
 
