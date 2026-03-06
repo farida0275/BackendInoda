@@ -37,7 +37,7 @@ CREATE TABLE data_peserta (
   waktu_uji_coba DATE,
   waktu_penerapan DATE,
   waktu_pengembangan DATE,
-  skor_final NUMERIC(5,2) DEFAULT 0;
+  skor_final NUMERIC(5,2) DEFAULT 0,
   rancangan_bangun TEXT,
   tujuan_inovasi TEXT,
   manfaat_diperoleh TEXT,
