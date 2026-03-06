@@ -32,6 +32,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Serverless API ready' });
 });
 
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
 export default function handler(req, res) {
   return app(req, res);
 }
