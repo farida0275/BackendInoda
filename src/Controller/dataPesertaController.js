@@ -45,13 +45,40 @@ const extractPublicIdFromCloudinaryUrl = (url) => {
   return path; // contoh: pdf_peserta/proposal_pdf-1712222222
 };
 
+// Helper: filter kolom untuk participant (non-admin)
+const filterColumnsForParticipant = (record) => {
+  const allowedCols = [
+    'id',
+    'nama_pemda',
+    'nama_inovasi',
+    'tahapan_inovasi',
+    'urusan_utama',
+    'urusan_beririsan',
+    'waktu_uji_coba',
+    'waktu_penerapan',
+    'waktu_pengembangan',
+    'created_at',
+  ];
+  const filtered = {};
+  allowedCols.forEach((col) => {
+    if (col in record) filtered[col] = record[col];
+  });
+  return filtered;
+};
+
 export const getDataPesertas = async (req, res) => {
   try {
     const list = await getAllDataPeserta();
+    const isUserAdmin = req.user?.role === 'admin';
+    const isUserJuri = req.user?.role === 'juri';
+        const filteredList = (isUserAdmin || isUserJuri)
+      ? list
+      : list.map(filterColumnsForParticipant);
+    
     return res.json({
       message: 'Daftar data peserta berhasil diambil',
-      count: list.length,
-      data: list,
+      count: filteredList.length,
+      data: filteredList,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
@@ -105,7 +132,7 @@ export const createDataPesertaHandler = async (req, res) => {
     const uploaded = req.uploadedFiles || {};
 
     const {
-      pemda_id,
+      nama_pemda,
       nama_inovasi,
       tahapan_inovasi,
       inisiator_inovasi,
@@ -126,7 +153,7 @@ export const createDataPesertaHandler = async (req, res) => {
     } = req.body;
 
     const errors = [];
-    errors.push(...validateOptionalNumber(pemda_id, 'pemda_id', { min: 1 }));
+    errors.push(...validateNama(nama_pemda));
     errors.push(...validateNama(nama_inovasi));
     errors.push(...validateEnum(tahapan_inovasi, 'tahapan_inovasi', tahapanOptions));
     errors.push(...validateEnum(inisiator_inovasi, 'inisiator_inovasi', inisiatorOptions));
@@ -154,7 +181,7 @@ export const createDataPesertaHandler = async (req, res) => {
     }
 
     const payload = {
-      pemda_id,
+      nama_pemda,
       nama_inovasi,
       tahapan_inovasi,
       inisiator_inovasi,
@@ -223,7 +250,7 @@ export const updateDataPesertaHandler = async (req, res) => {
     }
 
     const {
-      pemda_id,
+      nama_pemda,
       nama_inovasi,
       tahapan_inovasi,
       inisiator_inovasi,
@@ -245,7 +272,7 @@ export const updateDataPesertaHandler = async (req, res) => {
 
     const errors = [];
 
-    if (pemda_id !== undefined) errors.push(...validateOptionalNumber(pemda_id, 'pemda_id', { min: 1 }));
+    if (nama_pemda !== undefined) errors.push(...validateNama(nama_pemda));
     if (nama_inovasi !== undefined) errors.push(...validateNama(nama_inovasi));
     if (tahapan_inovasi !== undefined) errors.push(...validateEnum(tahapan_inovasi, 'tahapan_inovasi', tahapanOptions));
     if (inisiator_inovasi !== undefined) errors.push(...validateEnum(inisiator_inovasi, 'inisiator_inovasi', inisiatorOptions));
@@ -277,7 +304,7 @@ export const updateDataPesertaHandler = async (req, res) => {
       if (value !== undefined) payload[key] = value;
     };
 
-    assignIfDefined('pemda_id', pemda_id);
+    assignIfDefined('nama_pemda', nama_pemda);
     assignIfDefined('nama_inovasi', nama_inovasi);
     assignIfDefined('tahapan_inovasi', tahapan_inovasi);
     assignIfDefined('inisiator_inovasi', inisiator_inovasi);
