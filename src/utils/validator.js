@@ -443,7 +443,7 @@ export const validateStatus = (status, validStatuses = ['draft', 'published', 'a
   return errors;
 };
 
-export const validateRole = (role, validRoles = ['user', 'admin', 'moderator']) => {
+export const validateRole = (role, validRoles = ['user', 'admin', 'juri']) => {
   const errors = [];
 
   if (!role) {

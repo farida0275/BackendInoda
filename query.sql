@@ -76,3 +76,12 @@ CREATE TABLE penilaian_juri (
     FOREIGN KEY (inovasi_id) REFERENCES inovasi(id) ON DELETE CASCADE,
     UNIQUE (peserta_id, juri_id, inovasi_id)
 );
+
+CREATE TABLE penugasan_juri (
+    id SERIAL PRIMARY KEY,
+    peserta_id INT NOT NULL,
+    inovasi_id INT NOT NULL,
+    juri_id INT NOT NULL,
+    slot_penilai INT NOT NULL, -- 1 / 2 / 3
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

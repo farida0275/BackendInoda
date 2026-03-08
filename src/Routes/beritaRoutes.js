@@ -14,9 +14,8 @@ const isAdmin = (req, res, next) => {
 };
 
 router.get('/', getBeritaList);
-router.get('/:id', getBeritaDetail);
 router.get('/status/:status', getBeritaByStatus);
-
+router.get('/:id', getBeritaDetail);
 router.post('/', authenticate, isAdmin, upload.single('image'), uploadToCloudinary, createNewBerita);
 router.put('/:id', authenticate, isAdmin, upload.single('image'), uploadToCloudinary, updateBeritaData);
 router.delete('/:id', authenticate, isAdmin, deleteBeritaData);

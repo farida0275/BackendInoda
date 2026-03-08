@@ -27,13 +27,10 @@ const pdfFields = uploadPdf.fields([
   { name: 'proposal_pdf', maxCount: 1 },
 ]);
 
-// List all (semua user autentikasi bisa akses, partisipan lihat kolom terbatas)
 router.get('/', authenticate, getDataPesertas);
 
-// Detail (owner/admin check dilakukan di controller)
 router.get('/:id', authenticate, getDataPesertaDetail);
 
-// Create (peserta buat data sendiri)
 router.post(
   '/',
   authenticate,

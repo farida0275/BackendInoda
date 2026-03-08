@@ -5,6 +5,7 @@ import beritaRoutes from './src/Routes/beritaRoutes.js';
 import inovasiRoutes from './src/Routes/inovasiRoutes.js';
 import dataPesertaRoutes from './src/Routes/dataPesertaRoutes.js';
 import penilaianRoutes from './src/Routes/penilaianRoutes.js';
+import penugasanJuriRouter from './src/Routes/penugasanJuriRouter.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -21,6 +22,7 @@ app.use('/api/berita', beritaRoutes);
 app.use('/api/inovasi', inovasiRoutes);
 app.use('/api/data-peserta', dataPesertaRoutes);
 app.use('/api/penilaian', penilaianRoutes);
+app.use('/api/penugasan-juri', penugasanJuriRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

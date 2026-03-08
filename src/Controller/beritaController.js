@@ -125,9 +125,9 @@ export const updateBeritaData = async (req, res) => {
       return res.status(400).json(formatErrorResponse(idErrors, 'Update berita gagal: ID tidak valid'));
     }
 
-    const judulErrors = validateTitle(judul);
-    const kontenErrors = validateContent(konten);
-    const statusErrors = validateStatus(status);
+    const judulErrors = judul !== undefined ? validateTitle(judul) : [];
+    const kontenErrors = konten !== undefined ? validateContent(konten) : [];
+    const statusErrors = status !== undefined ? validateStatus(status) : [];
 
     const allErrors = combineErrors(judulErrors, kontenErrors, statusErrors);
 

@@ -25,10 +25,18 @@ const jenisOptions = ['Digital', 'Non Digital'];
 const PDF_COLS = ['anggaran_pdf', 'profil_bisnis_pdf', 'dokumen_haki_pdf', 'penghargaan_pdf', 'proposal_pdf'];
 
 const isAdmin = (user) => user?.role === 'admin';
+const isJuri = (user) => user?.role === 'juri';
 
 const isOwnerOrAdmin = (req, record) => {
   if (!record) return false;
   if (isAdmin(req.user)) return true;
+  return Number(record.dibuat_oleh) === Number(req.user?.id);
+};
+
+const canViewDetail = (req, record) => {
+  if (!record) return false;
+  if (isAdmin(req.user)) return true;
+  if (isJuri(req.user)) return true;
   return Number(record.dibuat_oleh) === Number(req.user?.id);
 };
 
@@ -39,13 +47,13 @@ const extractPublicIdFromCloudinaryUrl = (url) => {
   if (!afterUpload) return null;
 
   let path = afterUpload.split('?')[0];
-  path = path.replace(/^v\d+\//, '');     // buang v123/
-  path = path.replace(/\.[^/.]+$/, '');   // buang .pdf
+  path = path.replace(/^v\d+\//, '');
+  path = path.replace(/\.[^/.]+$/, '');
 
-  return path; // contoh: pdf_peserta/proposal_pdf-1712222222
+  return path;
 };
 
-// Helper: filter kolom untuk participant (non-admin)
+// Helper: filter kolom untuk participant (non-admin/non-juri)
 const filterColumnsForParticipant = (record) => {
   const allowedCols = [
     'id',
@@ -71,10 +79,11 @@ export const getDataPesertas = async (req, res) => {
     const list = await getAllDataPeserta();
     const isUserAdmin = req.user?.role === 'admin';
     const isUserJuri = req.user?.role === 'juri';
-        const filteredList = (isUserAdmin || isUserJuri)
+
+    const filteredList = (isUserAdmin || isUserJuri)
       ? list
       : list.map(filterColumnsForParticipant);
-    
+
     return res.json({
       message: 'Daftar data peserta berhasil diambil',
       count: filteredList.length,
@@ -107,8 +116,8 @@ export const getDataPesertaDetail = async (req, res) => {
       );
     }
 
-    // ✅ peserta hanya boleh lihat miliknya
-    if (!isOwnerOrAdmin(req, record)) {
+    // admin, juri, atau pemilik data boleh lihat detail
+    if (!canViewDetail(req, record)) {
       return res.status(403).json(
         formatErrorResponse(['Kamu tidak punya akses ke data ini'], 'Forbidden')
       );
@@ -200,7 +209,6 @@ export const createDataPesertaHandler = async (req, res) => {
       manfaat_diperoleh,
       hasil_inovasi,
 
-      // URL dari cloudinary
       anggaran_pdf: uploaded.anggaran_pdf?.url || null,
       profil_bisnis_pdf: uploaded.profil_bisnis_pdf?.url || null,
       dokumen_haki_pdf: uploaded.dokumen_haki_pdf?.url || null,
@@ -242,7 +250,7 @@ export const updateDataPesertaHandler = async (req, res) => {
       );
     }
 
-    // ✅ peserta hanya boleh update miliknya
+    // tetap hanya owner atau admin yang boleh update
     if (!isOwnerOrAdmin(req, existing)) {
       return res.status(403).json(
         formatErrorResponse(['Kamu tidak punya akses mengubah data ini'], 'Forbidden')
@@ -323,7 +331,6 @@ export const updateDataPesertaHandler = async (req, res) => {
     assignIfDefined('manfaat_diperoleh', manfaat_diperoleh);
     assignIfDefined('hasil_inovasi', hasil_inovasi);
 
-    // ✅ auto delete file lama + set url baru
     for (const col of PDF_COLS) {
       if (uploaded[col]?.url) {
         const oldUrl = existing[col];
@@ -372,14 +379,13 @@ export const deleteDataPesertaHandler = async (req, res) => {
       );
     }
 
-    // ✅ peserta hanya boleh delete miliknya
+    // tetap hanya owner atau admin yang boleh delete
     if (!isOwnerOrAdmin(req, existing)) {
       return res.status(403).json(
         formatErrorResponse(['Kamu tidak punya akses menghapus data ini'], 'Forbidden')
       );
     }
 
-    // hapus pdf di cloudinary
     for (const col of PDF_COLS) {
       const oldUrl = existing[col];
       const oldPublicId = extractPublicIdFromCloudinaryUrl(oldUrl);
