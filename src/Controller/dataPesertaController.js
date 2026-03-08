@@ -1,6 +1,7 @@
 ﻿import {
   getAllDataPeserta,
   getDataPesertaById,
+  getDataPesertaByCreator,
   createDataPeserta,
   updateDataPesertaById,
   deleteDataPesertaById,
@@ -53,7 +54,7 @@ const extractPublicIdFromCloudinaryUrl = (url) => {
   return path;
 };
 
-// Helper: filter kolom untuk participant (non-admin/non-juri)
+// untuk dashboard participant: semua data, tapi kolom dibatasi
 const filterColumnsForParticipant = (record) => {
   const allowedCols = [
     'id',
@@ -67,13 +68,18 @@ const filterColumnsForParticipant = (record) => {
     'waktu_pengembangan',
     'created_at',
   ];
+
   const filtered = {};
   allowedCols.forEach((col) => {
     if (col in record) filtered[col] = record[col];
   });
+
   return filtered;
 };
 
+// ENDPOINT DASHBOARD
+// admin/juri: semua data lengkap
+// participant: semua data, tapi hanya beberapa kolom
 export const getDataPesertas = async (req, res) => {
   try {
     const list = await getAllDataPeserta();
@@ -88,6 +94,34 @@ export const getDataPesertas = async (req, res) => {
       message: 'Daftar data peserta berhasil diambil',
       count: filteredList.length,
       data: filteredList,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json(
+      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+    );
+  }
+};
+
+// ENDPOINT KHUSUS SUBMISI SAYA
+// hanya data milik user login
+export const getMySubmissions = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json(
+        formatErrorResponse(['User tidak terautentikasi'], 'Unauthorized')
+      );
+    }
+
+    const list = await getDataPesertaByCreator(userId);
+
+    return res.json({
+      message: 'Daftar submission saya berhasil diambil',
+      count: list.length,
+      data: list,
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
@@ -116,7 +150,6 @@ export const getDataPesertaDetail = async (req, res) => {
       );
     }
 
-    // admin, juri, atau pemilik data boleh lihat detail
     if (!canViewDetail(req, record)) {
       return res.status(403).json(
         formatErrorResponse(['Kamu tidak punya akses ke data ini'], 'Forbidden')
@@ -250,7 +283,6 @@ export const updateDataPesertaHandler = async (req, res) => {
       );
     }
 
-    // tetap hanya owner atau admin yang boleh update
     if (!isOwnerOrAdmin(req, existing)) {
       return res.status(403).json(
         formatErrorResponse(['Kamu tidak punya akses mengubah data ini'], 'Forbidden')
@@ -379,7 +411,6 @@ export const deleteDataPesertaHandler = async (req, res) => {
       );
     }
 
-    // tetap hanya owner atau admin yang boleh delete
     if (!isOwnerOrAdmin(req, existing)) {
       return res.status(403).json(
         formatErrorResponse(['Kamu tidak punya akses menghapus data ini'], 'Forbidden')
@@ -416,6 +447,7 @@ export const deleteDataPesertaHandler = async (req, res) => {
 
 export default {
   getDataPesertas,
+  getMySubmissions,
   getDataPesertaDetail,
   createDataPesertaHandler,
   updateDataPesertaHandler,

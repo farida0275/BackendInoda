@@ -10,6 +10,17 @@ export const getAllDataPeserta = async () => {
   return rows;
 };
 
+export const getDataPesertaByCreator = async (userId) => {
+  const q = `
+    SELECT *
+    FROM data_peserta
+    WHERE dibuat_oleh = $1
+    ORDER BY created_at DESC, id DESC
+  `;
+  const { rows } = await pool.query(q, [userId]);
+  return rows;
+};
+
 export const getDataPesertaById = async (id) => {
   const q = `
     SELECT *
@@ -50,7 +61,6 @@ export const updateDataPesertaById = async (id, payload) => {
     values.push(val);
   }
 
-  // kalau tidak ada field update, return data existing
   if (sets.length === 0) {
     return await getDataPesertaById(id);
   }

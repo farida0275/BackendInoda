@@ -10,6 +10,7 @@ import beritaRoutes from '../src/Routes/beritaRoutes.js';
 import dataPesertaRoutes from '../src/Routes/dataPesertaRoutes.js';
 import inovasiRoutes from '../src/Routes/inovasiRoutes.js';
 import penilaianRoutes from '../src/Routes/penilaianRoutes.js';
+import penugasanJuriRouter from '../src/Routes/penugasanJuriRouter.js';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use('/api/berita', beritaRoutes);
 app.use('/api/data-peserta', dataPesertaRoutes);
 app.use('/api/inovasi', inovasiRoutes);
 app.use('/api/penilaian', penilaianRoutes);
+app.use('/api/penugasan-juri', penugasanJuriRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Serverless API ready' });

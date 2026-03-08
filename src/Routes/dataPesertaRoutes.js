@@ -1,6 +1,7 @@
 ﻿import express from 'express';
 import {
   getDataPesertas,
+  getMySubmissions,
   getDataPesertaDetail,
   createDataPesertaHandler,
   updateDataPesertaHandler,
@@ -29,6 +30,8 @@ const pdfFields = uploadPdf.fields([
 
 router.get('/', authenticate, getDataPesertas);
 
+router.get('/my-submissions', authenticate, getMySubmissions);
+
 router.get('/:id', authenticate, getDataPesertaDetail);
 
 router.post(
@@ -39,7 +42,6 @@ router.post(
   createDataPesertaHandler
 );
 
-// Update (owner/admin check dilakukan di controller)
 router.put(
   '/:id',
   authenticate,
