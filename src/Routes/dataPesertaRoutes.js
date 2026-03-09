@@ -5,6 +5,7 @@ import {
   getDataPesertaDetail,
   createDataPesertaHandler,
   updateDataPesertaHandler,
+  updateSeleksiPesertaHandler,
   deleteDataPesertaHandler,
 } from '../Controller/dataPesertaController.js';
 
@@ -49,6 +50,8 @@ router.put(
   uploadPdfFieldsToCloudinary('pdf_peserta'),
   updateDataPesertaHandler
 );
+
+router.put('/:id/seleksi', authenticate, isAdmin, updateSeleksiPesertaHandler);
 
 router.delete('/:id', authenticate, deleteDataPesertaHandler);
 

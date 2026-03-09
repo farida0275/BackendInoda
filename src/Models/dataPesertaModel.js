@@ -80,6 +80,23 @@ export const updateDataPesertaById = async (id, payload) => {
   return rows[0];
 };
 
+export const updateSeleksiPesertaById = async (id, payload) => {
+  const q = `
+    UPDATE data_peserta
+    SET tahap_seleksi = $1,
+        status_seleksi = $2,
+        updated_at = NOW()
+    WHERE id = $3
+    RETURNING *
+  `;
+  const { rows } = await pool.query(q, [
+    payload.tahap_seleksi,
+    payload.status_seleksi,
+    id,
+  ]);
+  return rows[0];
+};
+
 export const deleteDataPesertaById = async (id) => {
   const q = `DELETE FROM data_peserta WHERE id=$1 RETURNING id`;
   const { rows } = await pool.query(q, [id]);

@@ -4,6 +4,7 @@
   getDataPesertaByCreator,
   createDataPeserta,
   updateDataPesertaById,
+  updateSeleksiPesertaById,
   deleteDataPesertaById,
 } from '../Models/dataPesertaModel.js';
 
@@ -22,6 +23,9 @@ import { deleteCloudinaryRawByPublicId } from '../utils/cloudinaryDelete.js';
 const tahapanOptions = ['Inisiatif', 'Uji Coba', 'Penerapan'];
 const inisiatorOptions = ['Kepala Daerah', 'Anggota DPRD', 'OPD', 'ASN', 'Masyarakat'];
 const jenisOptions = ['Digital', 'Non Digital'];
+
+const tahapSeleksiOptions = ['all', 'administratif', 'semifinal', 'final'];
+const statusSeleksiOptions = ['Diproses', 'Lolos', 'Tidak Lolos'];
 
 const PDF_COLS = ['anggaran_pdf', 'profil_bisnis_pdf', 'dokumen_haki_pdf', 'penghargaan_pdf', 'proposal_pdf'];
 
@@ -67,6 +71,8 @@ const filterColumnsForParticipant = (record) => {
     'waktu_penerapan',
     'waktu_pengembangan',
     'created_at',
+    'tahap_seleksi',
+    'status_seleksi',
   ];
 
   const filtered = {};
@@ -249,6 +255,8 @@ export const createDataPesertaHandler = async (req, res) => {
       proposal_pdf: uploaded.proposal_pdf?.url || null,
 
       dibuat_oleh: req.user?.id || null,
+      tahap_seleksi: 'all',
+      status_seleksi: 'Diproses',
     };
 
     const record = await createDataPeserta(payload);
@@ -395,6 +403,59 @@ export const updateDataPesertaHandler = async (req, res) => {
   }
 };
 
+export const updateSeleksiPesertaHandler = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tahap_seleksi, status_seleksi } = req.body;
+
+    const idErrors = validateId(id);
+    if (idErrors.length > 0) {
+      return res.status(400).json(
+        formatErrorResponse(idErrors, 'Update seleksi gagal: ID tidak valid')
+      );
+    }
+
+    const errors = [];
+    errors.push(...validateEnum(tahap_seleksi, 'tahap_seleksi', tahapSeleksiOptions));
+    errors.push(...validateEnum(status_seleksi, 'status_seleksi', statusSeleksiOptions));
+
+    if (errors.length > 0) {
+      return res.status(400).json(
+        formatErrorResponse(errors, 'Validasi seleksi peserta gagal')
+      );
+    }
+
+    const existing = await getDataPesertaById(id);
+    if (!existing) {
+      return res.status(404).json(
+        formatErrorResponse([`Data peserta dengan ID ${id} tidak ditemukan`], 'Data tidak ditemukan')
+      );
+    }
+
+    if (!isAdmin(req.user)) {
+      return res.status(403).json(
+        formatErrorResponse(['Hanya admin yang dapat mengubah seleksi peserta'], 'Forbidden')
+      );
+    }
+
+    const updated = await updateSeleksiPesertaById(id, {
+      tahap_seleksi,
+      status_seleksi,
+    });
+
+    return res.json({
+      message: 'Seleksi peserta berhasil diperbarui',
+      data: updated,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json(
+      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+    );
+  }
+};
+
 export const deleteDataPesertaHandler = async (req, res) => {
   try {
     const { id } = req.params;
@@ -451,5 +512,6 @@ export default {
   getDataPesertaDetail,
   createDataPesertaHandler,
   updateDataPesertaHandler,
+  updateSeleksiPesertaHandler,
   deleteDataPesertaHandler,
 };
