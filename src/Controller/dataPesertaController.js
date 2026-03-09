@@ -28,7 +28,7 @@ const jenisOptions = ['Digital', 'Non Digital'];
 
 const getKategoriOptions = async () => {
   const inovasi = await getAllInovasi();
-  return inovasi.map(i => i.name);
+  return inovasi.map(i => i.id);
 };
 
 const tahapSeleksiOptions = ['all', 'administratif', 'semifinal', 'final'];
