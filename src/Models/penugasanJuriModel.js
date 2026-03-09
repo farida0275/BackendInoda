@@ -18,8 +18,8 @@ export const getPenugasanByJuri = async (juriId) => {
   const q = `
     SELECT
       pj.*,
-      dp.nama_pemda,
       dp.nama_inovasi,
+      dp.kategori,
       dp.nama_inisiator,
       dp.inisiator_inovasi,
       dp.jenis_inovasi,

@@ -18,7 +18,6 @@ create table Inovasi(
 
 CREATE TABLE data_peserta (
   id SERIAL PRIMARY KEY,
-  nama_pemda VARCHAR(255) NOT NULL,
   nama_inovasi VARCHAR(255) NOT NULL,
   tahapan_inovasi VARCHAR(20) NOT NULL CHECK (
     tahapan_inovasi IN ('Inisiatif','Uji Coba','Penerapan')
@@ -51,6 +50,13 @@ CREATE TABLE data_peserta (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE data_peserta
+ADD COLUMN kategori INTEGER,
+ADD CONSTRAINT fk_kategori_inovasi
+FOREIGN KEY (kategori)
+REFERENCES inovasi(id)
+ON DELETE SET NULL;
 
 create table berita(
     id serial primary key,

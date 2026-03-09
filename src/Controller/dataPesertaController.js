@@ -8,6 +8,8 @@
   deleteDataPesertaById,
 } from '../Models/dataPesertaModel.js';
 
+import { getAllInovasi } from '../Models/inovasiModel.js';
+
 import {
   validateId,
   validateNama,
@@ -23,6 +25,11 @@ import { deleteCloudinaryRawByPublicId } from '../utils/cloudinaryDelete.js';
 const tahapanOptions = ['Inisiatif', 'Uji Coba', 'Penerapan'];
 const inisiatorOptions = ['Kepala Daerah', 'Anggota DPRD', 'OPD', 'ASN', 'Masyarakat'];
 const jenisOptions = ['Digital', 'Non Digital'];
+
+const getKategoriOptions = async () => {
+  const inovasi = await getAllInovasi();
+  return inovasi.map(i => i.name);
+};
 
 const tahapSeleksiOptions = ['all', 'administratif', 'semifinal', 'final'];
 const statusSeleksiOptions = ['Diproses', 'Lolos', 'Tidak Lolos'];
@@ -62,8 +69,8 @@ const extractPublicIdFromCloudinaryUrl = (url) => {
 const filterColumnsForParticipant = (record) => {
   const allowedCols = [
     'id',
-    'nama_pemda',
     'nama_inovasi',
+    'kategori',
     'tahapan_inovasi',
     'urusan_utama',
     'urusan_beririsan',
@@ -180,8 +187,8 @@ export const createDataPesertaHandler = async (req, res) => {
     const uploaded = req.uploadedFiles || {};
 
     const {
-      nama_pemda,
       nama_inovasi,
+      kategori,
       tahapan_inovasi,
       inisiator_inovasi,
       nama_inisiator,
@@ -201,8 +208,9 @@ export const createDataPesertaHandler = async (req, res) => {
     } = req.body;
 
     const errors = [];
-    errors.push(...validateNama(nama_pemda));
+    const kategoriOptions = await getKategoriOptions();
     errors.push(...validateNama(nama_inovasi));
+    errors.push(...validateEnum(kategori, 'kategori', kategoriOptions));
     errors.push(...validateEnum(tahapan_inovasi, 'tahapan_inovasi', tahapanOptions));
     errors.push(...validateEnum(inisiator_inovasi, 'inisiator_inovasi', inisiatorOptions));
     errors.push(...validateNama(nama_inisiator));
@@ -229,8 +237,8 @@ export const createDataPesertaHandler = async (req, res) => {
     }
 
     const payload = {
-      nama_pemda,
       nama_inovasi,
+      kategori,
       tahapan_inovasi,
       inisiator_inovasi,
       nama_inisiator,
@@ -298,8 +306,8 @@ export const updateDataPesertaHandler = async (req, res) => {
     }
 
     const {
-      nama_pemda,
       nama_inovasi,
+      kategori,
       tahapan_inovasi,
       inisiator_inovasi,
       nama_inisiator,
@@ -319,9 +327,10 @@ export const updateDataPesertaHandler = async (req, res) => {
     } = req.body;
 
     const errors = [];
+    const kategoriOptions = await getKategoriOptions();
 
-    if (nama_pemda !== undefined) errors.push(...validateNama(nama_pemda));
     if (nama_inovasi !== undefined) errors.push(...validateNama(nama_inovasi));
+    if (kategori !== undefined) errors.push(...validateEnum(kategori, 'kategori', kategoriOptions));
     if (tahapan_inovasi !== undefined) errors.push(...validateEnum(tahapan_inovasi, 'tahapan_inovasi', tahapanOptions));
     if (inisiator_inovasi !== undefined) errors.push(...validateEnum(inisiator_inovasi, 'inisiator_inovasi', inisiatorOptions));
     if (nama_inisiator !== undefined) errors.push(...validateNama(nama_inisiator));
@@ -352,8 +361,8 @@ export const updateDataPesertaHandler = async (req, res) => {
       if (value !== undefined) payload[key] = value;
     };
 
-    assignIfDefined('nama_pemda', nama_pemda);
     assignIfDefined('nama_inovasi', nama_inovasi);
+    assignIfDefined('kategori', kategori);
     assignIfDefined('tahapan_inovasi', tahapan_inovasi);
     assignIfDefined('inisiator_inovasi', inisiator_inovasi);
     assignIfDefined('nama_inisiator', nama_inisiator);
