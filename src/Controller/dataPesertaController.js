@@ -28,7 +28,7 @@ const jenisOptions = ['Digital', 'Non Digital'];
 
 const getKategoriOptions = async () => {
   const inovasi = await getAllInovasi();
-  return inovasi.map(i => i.id);
+  return inovasi.map((i) => String(i.id));
 };
 
 const tahapSeleksiOptions = ['all', 'administratif', 'semifinal', 'final'];
@@ -206,6 +206,9 @@ export const createDataPesertaHandler = async (req, res) => {
       manfaat_diperoleh,
       hasil_inovasi,
     } = req.body;
+
+    console.log("BODY KATEGORI:", req.body.kategori);
+    console.log("BODY LENGKAP:", req.body);
 
     const errors = [];
     const kategoriOptions = await getKategoriOptions();
