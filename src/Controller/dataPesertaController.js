@@ -336,31 +336,94 @@ export const updateDataPesertaHandler = async (req, res) => {
       hasil_inovasi,
     } = req.body;
 
+    const normalizeEmptyToNull = (value) => {
+      if (value === "") return null;
+      return value;
+    };
+
+    const kategoriValue =
+      kategori !== undefined && kategori !== null && kategori !== ""
+        ? Number(kategori)
+        : undefined;
+
+    const normalizedWaktuUjiCoba = normalizeEmptyToNull(waktu_uji_coba);
+    const normalizedWaktuPenerapan = normalizeEmptyToNull(waktu_penerapan);
+    const normalizedWaktuPengembangan = normalizeEmptyToNull(waktu_pengembangan);
+
     const errors = [];
     const kategoriOptions = await getKategoriOptions();
 
-    if (nama_inovasi !== undefined) errors.push(...validateNama(nama_inovasi));
-    if (kategori !== undefined) errors.push(...validateEnum(kategori, 'kategori', kategoriOptions));
-    if (tahapan_inovasi !== undefined) errors.push(...validateEnum(tahapan_inovasi, 'tahapan_inovasi', tahapanOptions));
-    if (inisiator_inovasi !== undefined) errors.push(...validateEnum(inisiator_inovasi, 'inisiator_inovasi', inisiatorOptions));
-    if (nama_inisiator !== undefined) errors.push(...validateNama(nama_inisiator));
-    if (jenis_inovasi !== undefined) errors.push(...validateEnum(jenis_inovasi, 'jenis_inovasi', jenisOptions));
+    if (nama_inovasi !== undefined) {
+      errors.push(...validateNama(nama_inovasi));
+    }
 
-    if (bentuk_inovasi !== undefined) errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi', 150));
-    if (tematik !== undefined) errors.push(...validateOptionalString(tematik, 'tematik', 150));
-    if (urusan_utama !== undefined) errors.push(...validateOptionalString(urusan_utama, 'urusan_utama', 150));
-    if (urusan_beririsan !== undefined) errors.push(...validateOptionalString(urusan_beririsan, 'urusan_beririsan', 255));
+    if (kategori !== undefined) {
+      errors.push(...validateEnum(String(kategori), 'kategori', kategoriOptions));
+    }
 
-    if (waktu_uji_coba !== undefined) errors.push(...validateOptionalDate(waktu_uji_coba, 'waktu_uji_coba'));
-    if (waktu_penerapan !== undefined) errors.push(...validateOptionalDate(waktu_penerapan, 'waktu_penerapan'));
-    if (waktu_pengembangan !== undefined) errors.push(...validateOptionalDate(waktu_pengembangan, 'waktu_pengembangan'));
+    if (tahapan_inovasi !== undefined) {
+      errors.push(...validateEnum(tahapan_inovasi, 'tahapan_inovasi', tahapanOptions));
+    }
 
-    if (skor_final !== undefined) errors.push(...validateOptionalNumber(skor_final, 'skor_final', { min: 0, max: 100 }));
+    if (inisiator_inovasi !== undefined) {
+      errors.push(...validateEnum(inisiator_inovasi, 'inisiator_inovasi', inisiatorOptions));
+    }
 
-    if (rancangan_bangun !== undefined) errors.push(...validateOptionalString(rancangan_bangun, 'rancangan_bangun', 10000));
-    if (tujuan_inovasi !== undefined) errors.push(...validateOptionalString(tujuan_inovasi, 'tujuan_inovasi', 10000));
-    if (manfaat_diperoleh !== undefined) errors.push(...validateOptionalString(manfaat_diperoleh, 'manfaat_diperoleh', 10000));
-    if (hasil_inovasi !== undefined) errors.push(...validateOptionalString(hasil_inovasi, 'hasil_inovasi', 10000));
+    if (nama_inisiator !== undefined) {
+      errors.push(...validateNama(nama_inisiator));
+    }
+
+    if (jenis_inovasi !== undefined) {
+      errors.push(...validateEnum(jenis_inovasi, 'jenis_inovasi', jenisOptions));
+    }
+
+    if (bentuk_inovasi !== undefined) {
+      errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi', 150));
+    }
+
+    if (tematik !== undefined) {
+      errors.push(...validateOptionalString(tematik, 'tematik', 150));
+    }
+
+    if (urusan_utama !== undefined) {
+      errors.push(...validateOptionalString(urusan_utama, 'urusan_utama', 150));
+    }
+
+    if (urusan_beririsan !== undefined) {
+      errors.push(...validateOptionalString(urusan_beririsan, 'urusan_beririsan', 255));
+    }
+
+    if (waktu_uji_coba !== undefined) {
+      errors.push(...validateOptionalDate(normalizedWaktuUjiCoba, 'waktu_uji_coba'));
+    }
+
+    if (waktu_penerapan !== undefined) {
+      errors.push(...validateOptionalDate(normalizedWaktuPenerapan, 'waktu_penerapan'));
+    }
+
+    if (waktu_pengembangan !== undefined) {
+      errors.push(...validateOptionalDate(normalizedWaktuPengembangan, 'waktu_pengembangan'));
+    }
+
+    if (skor_final !== undefined) {
+      errors.push(...validateOptionalNumber(skor_final, 'skor_final', { min: 0, max: 100 }));
+    }
+
+    if (rancangan_bangun !== undefined) {
+      errors.push(...validateOptionalString(rancangan_bangun, 'rancangan_bangun', 10000));
+    }
+
+    if (tujuan_inovasi !== undefined) {
+      errors.push(...validateOptionalString(tujuan_inovasi, 'tujuan_inovasi', 10000));
+    }
+
+    if (manfaat_diperoleh !== undefined) {
+      errors.push(...validateOptionalString(manfaat_diperoleh, 'manfaat_diperoleh', 10000));
+    }
+
+    if (hasil_inovasi !== undefined) {
+      errors.push(...validateOptionalString(hasil_inovasi, 'hasil_inovasi', 10000));
+    }
 
     if (errors.length > 0) {
       return res.status(400).json(formatErrorResponse(errors, 'Validasi data peserta gagal'));
@@ -372,7 +435,7 @@ export const updateDataPesertaHandler = async (req, res) => {
     };
 
     assignIfDefined('nama_inovasi', nama_inovasi);
-    assignIfDefined('kategori', kategori);
+    assignIfDefined('kategori', kategoriValue);
     assignIfDefined('tahapan_inovasi', tahapan_inovasi);
     assignIfDefined('inisiator_inovasi', inisiator_inovasi);
     assignIfDefined('nama_inisiator', nama_inisiator);
@@ -381,9 +444,9 @@ export const updateDataPesertaHandler = async (req, res) => {
     assignIfDefined('tematik', tematik);
     assignIfDefined('urusan_utama', urusan_utama);
     assignIfDefined('urusan_beririsan', urusan_beririsan);
-    assignIfDefined('waktu_uji_coba', waktu_uji_coba);
-    assignIfDefined('waktu_penerapan', waktu_penerapan);
-    assignIfDefined('waktu_pengembangan', waktu_pengembangan);
+    assignIfDefined('waktu_uji_coba', normalizedWaktuUjiCoba);
+    assignIfDefined('waktu_penerapan', normalizedWaktuPenerapan);
+    assignIfDefined('waktu_pengembangan', normalizedWaktuPengembangan);
     assignIfDefined('skor_final', skor_final);
     assignIfDefined('rancangan_bangun', rancangan_bangun);
     assignIfDefined('tujuan_inovasi', tujuan_inovasi);
