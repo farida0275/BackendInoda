@@ -186,6 +186,15 @@ export const createDataPesertaHandler = async (req, res) => {
   try {
     const uploaded = req.uploadedFiles || {};
 
+    // Validasi file yang wajib diupload
+    const errors = [];
+    if (!uploaded.proposal_pdf) {
+      errors.push('File proposal_pdf wajib diupload');
+    }
+    if (!uploaded.profil_bisnis_pdf) {
+      errors.push('File profil_bisnis_pdf (ppt) wajib diupload');
+    }
+
     const {
       nama_inovasi,
       kategori,
@@ -207,13 +216,11 @@ export const createDataPesertaHandler = async (req, res) => {
       hasil_inovasi,
     } = req.body;
 
-    console.log("BODY KATEGORI:", req.body.kategori);
-    console.log("BODY LENGKAP:", req.body);
+    const kategoriValue = String(kategori ?? "");
 
-    const errors = [];
     const kategoriOptions = await getKategoriOptions();
     errors.push(...validateNama(nama_inovasi));
-    errors.push(...validateEnum(kategori, 'kategori', kategoriOptions));
+    errors.push(...validateEnum(kategoriValue, 'kategori', kategoriOptions));
     errors.push(...validateEnum(tahapan_inovasi, 'tahapan_inovasi', tahapanOptions));
     errors.push(...validateEnum(inisiator_inovasi, 'inisiator_inovasi', inisiatorOptions));
     errors.push(...validateNama(nama_inisiator));
@@ -241,7 +248,7 @@ export const createDataPesertaHandler = async (req, res) => {
 
     const payload = {
       nama_inovasi,
-      kategori,
+      kategori: kategoriValue ? Number(kategoriValue) : null,
       tahapan_inovasi,
       inisiator_inovasi,
       nama_inisiator,
