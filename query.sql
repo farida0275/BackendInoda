@@ -29,9 +29,10 @@ CREATE TABLE data_peserta (
   jenis_inovasi VARCHAR(20) NOT NULL CHECK (
     jenis_inovasi IN ('Digital','Non Digital')
   ),
-  bentuk_inovasi VARCHAR(150),
-  tematik VARCHAR(150),
-  urusan_utama VARCHAR(150),
+  -- increased size from 150 to 1000 or TEXT to allow longer values
+  bentuk_inovasi TEXT,
+  tematik TEXT,
+  urusan_utama TEXT,
   urusan_beririsan VARCHAR(255),
   waktu_uji_coba DATE,
   waktu_penerapan DATE,

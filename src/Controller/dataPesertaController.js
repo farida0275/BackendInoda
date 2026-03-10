@@ -226,9 +226,10 @@ export const createDataPesertaHandler = async (req, res) => {
     errors.push(...validateNama(nama_inisiator));
     errors.push(...validateEnum(jenis_inovasi, 'jenis_inovasi', jenisOptions));
 
-    errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi', 150));
-    errors.push(...validateOptionalString(tematik, 'tematik', 150));
-    errors.push(...validateOptionalString(urusan_utama, 'urusan_utama', 150));
+    // no strict 150-char limit; use default max (255) or adjust as needed
+    errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi'));
+    errors.push(...validateOptionalString(tematik, 'tematik'));
+    errors.push(...validateOptionalString(urusan_utama, 'urusan_utama'));
     errors.push(...validateOptionalString(urusan_beririsan, 'urusan_beririsan', 255));
 
     errors.push(...validateOptionalDate(waktu_uji_coba, 'waktu_uji_coba'));
@@ -378,15 +379,16 @@ export const updateDataPesertaHandler = async (req, res) => {
     }
 
     if (bentuk_inovasi !== undefined) {
-      errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi', 150));
+      // allow longer values (default max 255)
+      errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi'));
     }
 
     if (tematik !== undefined) {
-      errors.push(...validateOptionalString(tematik, 'tematik', 150));
+      errors.push(...validateOptionalString(tematik, 'tematik'));
     }
 
     if (urusan_utama !== undefined) {
-      errors.push(...validateOptionalString(urusan_utama, 'urusan_utama', 150));
+      errors.push(...validateOptionalString(urusan_utama, 'urusan_utama'));
     }
 
     if (urusan_beririsan !== undefined) {
