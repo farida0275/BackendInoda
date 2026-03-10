@@ -84,7 +84,6 @@ export const createPenugasanByInovasi = async ({
   try {
     await client.query('BEGIN');
 
-    // 1. Pastikan inovasi ada
     const inovasiQuery = `
       SELECT id, name
       FROM inovasi
@@ -96,23 +95,37 @@ export const createPenugasanByInovasi = async ({
       throw new Error('INOVASI_NOT_FOUND');
     }
 
-    // 2. Cari semua peserta yang kategori-nya sama dengan inovasi_id
-    //    karena data_peserta.kategori menyimpan ID inovasi
+    const inovasi = inovasiRows[0];
+    console.log('[DEBUG] inovasi dipilih:', inovasi);
+
+    // Cek semua peserta yang kategori-nya sesuai inovasi_id
     const pesertaQuery = `
-      SELECT id, nama_inovasi, kategori
+      SELECT id, nama_inovasi, kategori, nama_inisiator
       FROM data_peserta
       WHERE kategori = $1
       ORDER BY id ASC
     `;
     const { rows: pesertaRows } = await client.query(pesertaQuery, [inovasi_id]);
 
+    console.log('[DEBUG] inovasi_id:', inovasi_id);
+    console.log('[DEBUG] peserta cocok berdasarkan kategori:', pesertaRows);
+
     if (pesertaRows.length === 0) {
+      // tambahan debug: tampilkan isi data peserta yang ada
+      const debugPesertaQuery = `
+        SELECT id, nama_inovasi, kategori, nama_inisiator
+        FROM data_peserta
+        ORDER BY id ASC
+      `;
+      const { rows: semuaPeserta } = await client.query(debugPesertaQuery);
+
+      console.log('[DEBUG] semua data peserta:', semuaPeserta);
+
       throw new Error('PESERTA_BY_INOVASI_NOT_FOUND');
     }
 
     const inserted = [];
 
-    // 3. Insert penugasan untuk semua peserta dalam inovasi tersebut
     for (const peserta of pesertaRows) {
       const insertQuery = `
         INSERT INTO penugasan_juri
