@@ -12,7 +12,6 @@ import {
 
 import {
   validateId,
-  validateOptionalNumber,
   validateOptionalString,
   formatErrorResponse,
 } from '../utils/validator.js';
@@ -54,6 +53,118 @@ const validateRequiredNumber = (value, fieldName, { min, max } = {}) => {
   }
 
   return errors;
+};
+
+const hitungSkor = (body) => {
+  const proposalItems = [
+    Number(body.proposal_tampilan || 0),
+    Number(body.proposal_kelengkapan || 0),
+    Number(body.proposal_keterkaitan || 0),
+    Number(body.proposal_tujuan || 0),
+    Number(body.proposal_deskripsi || 0),
+  ];
+
+  const videoItems = [
+    Number(body.video_latar_belakang || 0),
+    Number(body.video_penjaringan_ide || 0),
+    Number(body.video_pemilihan_ide || 0),
+    Number(body.video_manfaat || 0),
+    Number(body.video_dampak || 0),
+  ];
+
+  const substansiTotal =
+    Number(body.substansi_kesiapterapan || 0) +
+    Number(body.substansi_kebaharuan || 0) +
+    Number(body.substansi_komersialisasi || 0) +
+    Number(body.substansi_usp || 0) +
+    Number(body.substansi_kemanfaatan || 0) +
+    Number(body.substansi_kedalaman || 0);
+
+  const rataProposal =
+    proposalItems.reduce((a, b) => a + b, 0) / proposalItems.length;
+
+  const rataVideo =
+    videoItems.reduce((a, b) => a + b, 0) / videoItems.length;
+
+  const skorProposal = Number((rataProposal * 0.2).toFixed(2));
+  const skorVideo = Number((rataVideo * 0.2).toFixed(2));
+  const skorSubstansi = Number((substansiTotal * 0.6).toFixed(2));
+  const skorAkhir = Number(
+    (skorProposal + skorVideo + skorSubstansi).toFixed(2)
+  );
+
+  return {
+    skor_proposal: skorProposal,
+    skor_video: skorVideo,
+    skor_substansi: skorSubstansi,
+    skor_akhir: skorAkhir,
+  };
+};
+
+const validatePenilaianPayload = (body) => {
+  const errors = [];
+
+  errors.push(...validateRequiredNumber(body.peserta_id, 'peserta_id', { min: 1 }));
+  errors.push(...validateRequiredNumber(body.inovasi_id, 'inovasi_id', { min: 1 }));
+
+  errors.push(...validateRequiredNumber(body.proposal_tampilan, 'proposal_tampilan', { min: 0, max: 100 }));
+  errors.push(...validateRequiredNumber(body.proposal_kelengkapan, 'proposal_kelengkapan', { min: 0, max: 100 }));
+  errors.push(...validateRequiredNumber(body.proposal_keterkaitan, 'proposal_keterkaitan', { min: 0, max: 100 }));
+  errors.push(...validateRequiredNumber(body.proposal_tujuan, 'proposal_tujuan', { min: 0, max: 100 }));
+  errors.push(...validateRequiredNumber(body.proposal_deskripsi, 'proposal_deskripsi', { min: 0, max: 100 }));
+
+  errors.push(...validateRequiredNumber(body.video_latar_belakang, 'video_latar_belakang', { min: 0, max: 100 }));
+  errors.push(...validateRequiredNumber(body.video_penjaringan_ide, 'video_penjaringan_ide', { min: 0, max: 100 }));
+  errors.push(...validateRequiredNumber(body.video_pemilihan_ide, 'video_pemilihan_ide', { min: 0, max: 100 }));
+  errors.push(...validateRequiredNumber(body.video_manfaat, 'video_manfaat', { min: 0, max: 100 }));
+  errors.push(...validateRequiredNumber(body.video_dampak, 'video_dampak', { min: 0, max: 100 }));
+
+  errors.push(...validateRequiredNumber(body.substansi_kesiapterapan, 'substansi_kesiapterapan', { min: 0, max: 20 }));
+  errors.push(...validateRequiredNumber(body.substansi_kebaharuan, 'substansi_kebaharuan', { min: 0, max: 10 }));
+  errors.push(...validateRequiredNumber(body.substansi_komersialisasi, 'substansi_komersialisasi', { min: 0, max: 20 }));
+  errors.push(...validateRequiredNumber(body.substansi_usp, 'substansi_usp', { min: 0, max: 20 }));
+  errors.push(...validateRequiredNumber(body.substansi_kemanfaatan, 'substansi_kemanfaatan', { min: 0, max: 35 }));
+  errors.push(...validateRequiredNumber(body.substansi_kedalaman, 'substansi_kedalaman', { min: 0, max: 15 }));
+
+  errors.push(...validateOptionalString(body.catatan, 'catatan', 10000));
+
+  return errors;
+};
+
+const buildPayload = (body, juriId) => {
+  const skor = hitungSkor(body);
+
+  return {
+    peserta_id: Number(body.peserta_id),
+    inovasi_id: Number(body.inovasi_id),
+    ...(juriId ? { juri_id: Number(juriId) } : {}),
+
+    proposal_tampilan: Number(body.proposal_tampilan),
+    proposal_kelengkapan: Number(body.proposal_kelengkapan),
+    proposal_keterkaitan: Number(body.proposal_keterkaitan),
+    proposal_tujuan: Number(body.proposal_tujuan),
+    proposal_deskripsi: Number(body.proposal_deskripsi),
+
+    video_latar_belakang: Number(body.video_latar_belakang),
+    video_penjaringan_ide: Number(body.video_penjaringan_ide),
+    video_pemilihan_ide: Number(body.video_pemilihan_ide),
+    video_manfaat: Number(body.video_manfaat),
+    video_dampak: Number(body.video_dampak),
+
+    substansi_kesiapterapan: Number(body.substansi_kesiapterapan),
+    substansi_kebaharuan: Number(body.substansi_kebaharuan),
+    substansi_komersialisasi: Number(body.substansi_komersialisasi),
+    substansi_usp: Number(body.substansi_usp),
+    substansi_kemanfaatan: Number(body.substansi_kemanfaatan),
+    substansi_kedalaman: Number(body.substansi_kedalaman),
+
+    skor_proposal: skor.skor_proposal,
+    skor_video: skor.skor_video,
+    skor_substansi: skor.skor_substansi,
+    skor_akhir: skor.skor_akhir,
+
+    catatan: body.catatan ?? null,
+  };
 };
 
 export const getPenilaians = async (req, res) => {
@@ -160,19 +271,15 @@ export const createPenilaianHandler = async (req, res) => {
       );
     }
 
-    const { peserta_id, inovasi_id, skor, catatan } = req.body;
-
-    const errors = [];
-    errors.push(...validateRequiredNumber(peserta_id, 'peserta_id', { min: 1 }));
-    errors.push(...validateRequiredNumber(inovasi_id, 'inovasi_id', { min: 1 }));
-    errors.push(...validateRequiredNumber(skor, 'skor', { min: 0, max: 100 }));
-    errors.push(...validateOptionalString(catatan, 'catatan', 10000));
+    const errors = validatePenilaianPayload(req.body);
 
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(errors, 'Validasi penilaian gagal')
       );
     }
+
+    const { peserta_id, inovasi_id } = req.body;
 
     const penugasan = await findPenugasanForJuri({
       peserta_id: Number(peserta_id),
@@ -195,23 +302,16 @@ export const createPenilaianHandler = async (req, res) => {
       juri_id: Number(req.user.id),
     });
 
+    const payload = buildPayload(req.body, req.user.id);
+
     let record;
     let message;
 
     if (existing) {
-      record = await updatePenilaianById(existing.id, {
-        skor: Number(skor),
-        catatan: catatan ?? null,
-      });
+      record = await updatePenilaianById(existing.id, payload);
       message = 'Penilaian juri berhasil diperbarui';
     } else {
-      record = await createPenilaian({
-        peserta_id: Number(peserta_id),
-        juri_id: Number(req.user.id),
-        inovasi_id: Number(inovasi_id),
-        skor: Number(skor),
-        catatan: catatan ?? null,
-      });
+      record = await createPenilaian(payload);
       message = 'Penilaian juri berhasil dibuat';
     }
 
@@ -254,14 +354,10 @@ export const createPenilaianAdminHandler = async (req, res) => {
       );
     }
 
-    const { peserta_id, inovasi_id, slot_penilai, skor, catatan } = req.body;
+    const { peserta_id, inovasi_id, slot_penilai } = req.body;
 
-    const errors = [];
-    errors.push(...validateRequiredNumber(peserta_id, 'peserta_id', { min: 1 }));
-    errors.push(...validateRequiredNumber(inovasi_id, 'inovasi_id', { min: 1 }));
+    const errors = validatePenilaianPayload(req.body);
     errors.push(...validateRequiredNumber(slot_penilai, 'slot_penilai', { min: 1, max: 3 }));
-    errors.push(...validateRequiredNumber(skor, 'skor', { min: 0, max: 100 }));
-    errors.push(...validateOptionalString(catatan, 'catatan', 10000));
 
     if (errors.length > 0) {
       return res.status(400).json(
@@ -290,23 +386,16 @@ export const createPenilaianAdminHandler = async (req, res) => {
       juri_id: Number(penugasan.juri_id),
     });
 
+    const payload = buildPayload(req.body, penugasan.juri_id);
+
     let record;
     let message;
 
     if (existing) {
-      record = await updatePenilaianById(existing.id, {
-        skor: Number(skor),
-        catatan: catatan ?? null,
-      });
+      record = await updatePenilaianById(existing.id, payload);
       message = 'Penilaian slot berhasil diperbarui oleh admin';
     } else {
-      record = await createPenilaian({
-        peserta_id: Number(peserta_id),
-        juri_id: Number(penugasan.juri_id),
-        inovasi_id: Number(inovasi_id),
-        skor: Number(skor),
-        catatan: catatan ?? null,
-      });
+      record = await createPenilaian(payload);
       message = 'Penilaian slot berhasil dibuat oleh admin';
     }
 
@@ -365,15 +454,14 @@ export const updatePenilaianHandler = async (req, res) => {
       );
     }
 
-    const { skor, catatan } = req.body;
+    const mergedBody = {
+      ...existing,
+      ...req.body,
+      peserta_id: existing.peserta_id,
+      inovasi_id: existing.inovasi_id,
+    };
 
-    const errors = [];
-    if (skor !== undefined) {
-      errors.push(...validateOptionalNumber(skor, 'skor', { min: 0, max: 100 }));
-    }
-    if (catatan !== undefined) {
-      errors.push(...validateOptionalString(catatan, 'catatan', 10000));
-    }
+    const errors = validatePenilaianPayload(mergedBody);
 
     if (errors.length > 0) {
       return res.status(400).json(
@@ -381,16 +469,7 @@ export const updatePenilaianHandler = async (req, res) => {
       );
     }
 
-    const payload = {};
-    if (skor !== undefined) payload.skor = Number(skor);
-    if (catatan !== undefined) payload.catatan = catatan;
-
-    if (Object.keys(payload).length === 0) {
-      return res.status(400).json(
-        formatErrorResponse(['Tidak ada data yang diubah'], 'Tidak ada perubahan data')
-      );
-    }
-
+    const payload = buildPayload(mergedBody, existing.juri_id);
     const updated = await updatePenilaianById(id, payload);
     const detail = await getPenilaianById(updated.id);
 

@@ -8,6 +8,8 @@ export const getAllPenilaian = async () => {
       dp.nama_inovasi,
       dp.nama_inisiator,
       dp.urusan_utama,
+      dp.tahapan_inovasi,
+      dp.kategori AS kategori_id,
       pju.slot_penilai
     FROM penilaian_juri pj
     LEFT JOIN users u
@@ -20,6 +22,7 @@ export const getAllPenilaian = async () => {
       AND pju.juri_id = pj.juri_id
     ORDER BY pj.id DESC
   `;
+
   const { rows } = await pool.query(q);
   return rows;
 };
@@ -32,6 +35,8 @@ export const getPenilaianByJuriId = async (juriId) => {
       dp.nama_inovasi,
       dp.nama_inisiator,
       dp.urusan_utama,
+      dp.tahapan_inovasi,
+      dp.kategori AS kategori_id,
       pju.slot_penilai
     FROM penilaian_juri pj
     LEFT JOIN users u
@@ -45,6 +50,7 @@ export const getPenilaianByJuriId = async (juriId) => {
     WHERE pj.juri_id = $1
     ORDER BY pj.id DESC
   `;
+
   const { rows } = await pool.query(q, [juriId]);
   return rows;
 };
@@ -57,6 +63,8 @@ export const getPenilaianById = async (id) => {
       dp.nama_inovasi,
       dp.nama_inisiator,
       dp.urusan_utama,
+      dp.tahapan_inovasi,
+      dp.kategori AS kategori_id,
       pju.slot_penilai
     FROM penilaian_juri pj
     LEFT JOIN users u
@@ -68,12 +76,18 @@ export const getPenilaianById = async (id) => {
       AND pju.inovasi_id = pj.inovasi_id
       AND pju.juri_id = pj.juri_id
     WHERE pj.id = $1
+    LIMIT 1
   `;
+
   const { rows } = await pool.query(q, [id]);
   return rows[0];
 };
 
-export const findPenugasanForJuri = async ({ peserta_id, inovasi_id, juri_id }) => {
+export const findPenugasanForJuri = async ({
+  peserta_id,
+  inovasi_id,
+  juri_id,
+}) => {
   const q = `
     SELECT *
     FROM penugasan_juri
@@ -82,11 +96,16 @@ export const findPenugasanForJuri = async ({ peserta_id, inovasi_id, juri_id }) 
       AND juri_id = $3
     LIMIT 1
   `;
+
   const { rows } = await pool.query(q, [peserta_id, inovasi_id, juri_id]);
   return rows[0];
 };
 
-export const findPenugasanBySlot = async ({ peserta_id, inovasi_id, slot_penilai }) => {
+export const findPenugasanBySlot = async ({
+  peserta_id,
+  inovasi_id,
+  slot_penilai,
+}) => {
   const q = `
     SELECT *
     FROM penugasan_juri
@@ -95,11 +114,20 @@ export const findPenugasanBySlot = async ({ peserta_id, inovasi_id, slot_penilai
       AND slot_penilai = $3
     LIMIT 1
   `;
-  const { rows } = await pool.query(q, [peserta_id, inovasi_id, slot_penilai]);
+
+  const { rows } = await pool.query(q, [
+    peserta_id,
+    inovasi_id,
+    slot_penilai,
+  ]);
   return rows[0];
 };
 
-export const findPenilaianByUnique = async ({ peserta_id, juri_id, inovasi_id }) => {
+export const findPenilaianByUnique = async ({
+  peserta_id,
+  juri_id,
+  inovasi_id,
+}) => {
   const q = `
     SELECT *
     FROM penilaian_juri
@@ -108,6 +136,7 @@ export const findPenilaianByUnique = async ({ peserta_id, juri_id, inovasi_id })
       AND inovasi_id = $3
     LIMIT 1
   `;
+
   const { rows } = await pool.query(q, [peserta_id, juri_id, inovasi_id]);
   return rows[0];
 };
@@ -115,11 +144,11 @@ export const findPenilaianByUnique = async ({ peserta_id, juri_id, inovasi_id })
 export const createPenilaian = async (payload) => {
   const fields = Object.keys(payload);
   const values = Object.values(payload);
-  const idxs = fields.map((_, i) => `$${i + 1}`);
+  const placeholders = fields.map((_, index) => `$${index + 1}`);
 
   const q = `
     INSERT INTO penilaian_juri (${fields.join(', ')})
-    VALUES (${idxs.join(', ')})
+    VALUES (${placeholders.join(', ')})
     RETURNING *
   `;
 
@@ -128,29 +157,29 @@ export const createPenilaian = async (payload) => {
 };
 
 export const updatePenilaianById = async (id, payload) => {
+  const entries = Object.entries(payload);
+
+  if (entries.length === 0) {
+    return getPenilaianById(id);
+  }
+
   const sets = [];
   const values = [];
-  let idx = 1;
 
-  for (const [key, val] of Object.entries(payload)) {
-    sets.push(`${key} = $${idx++}`);
-    values.push(val);
-  }
-
-  if (sets.length === 0) {
-    return await getPenilaianById(id);
-  }
+  entries.forEach(([key, value], index) => {
+    sets.push(`${key} = $${index + 1}`);
+    values.push(value);
+  });
 
   sets.push(`updated_at = NOW()`);
+  values.push(id);
 
   const q = `
     UPDATE penilaian_juri
     SET ${sets.join(', ')}
-    WHERE id = $${idx}
+    WHERE id = $${values.length}
     RETURNING *
   `;
-
-  values.push(id);
 
   const { rows } = await pool.query(q, values);
   return rows[0];
@@ -162,6 +191,7 @@ export const deletePenilaianById = async (id) => {
     WHERE id = $1
     RETURNING id
   `;
+
   const { rows } = await pool.query(q, [id]);
   return rows[0];
 };
