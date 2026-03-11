@@ -511,3 +511,93 @@ export const formatSuccessResponse = (data, message = 'Sukses', code = 200) => {
     timestamp: new Date().toISOString(),
   };
 };
+
+export const validateAuthorName = (author) => {
+  const errors = [];
+
+  if (!author) {
+    errors.push('Author harus diisi');
+    return errors;
+  }
+
+  if (typeof author !== 'string') {
+    errors.push('Author harus berupa teks');
+    return errors;
+  }
+
+  author = author.trim();
+
+  if (author.length < 3) {
+    errors.push(`Author minimal 3 karakter (saat ini: ${author.length} karakter)`);
+  }
+
+  if (author.length > 150) {
+    errors.push(`Author maksimal 150 karakter (saat ini: ${author.length} karakter)`);
+  }
+
+  if (/^[\s]+$/.test(author)) {
+    errors.push('Author tidak boleh hanya berisi spasi');
+  }
+
+  return errors;
+};
+
+export const validateSourceName = (source_name) => {
+  const errors = [];
+
+  if (source_name === undefined || source_name === null || source_name === '') {
+    return errors;
+  }
+
+  if (typeof source_name !== 'string') {
+    errors.push('Nama sumber harus berupa teks');
+    return errors;
+  }
+
+  source_name = source_name.trim();
+
+  if (source_name.length < 2) {
+    errors.push(`Nama sumber minimal 2 karakter (saat ini: ${source_name.length} karakter)`);
+  }
+
+  if (source_name.length > 150) {
+    errors.push(`Nama sumber maksimal 150 karakter (saat ini: ${source_name.length} karakter)`);
+  }
+
+  if (/^[\s]+$/.test(source_name)) {
+    errors.push('Nama sumber tidak boleh hanya berisi spasi');
+  }
+
+  return errors;
+};
+
+export const validateSourceUrl = (source_url) => {
+  const errors = [];
+
+  if (source_url === undefined || source_url === null || source_url === '') {
+    return errors;
+  }
+
+  if (typeof source_url !== 'string') {
+    errors.push('Link sumber harus berupa teks');
+    return errors;
+  }
+
+  source_url = source_url.trim();
+
+  try {
+    const parsedUrl = new URL(source_url);
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      errors.push('Link sumber harus menggunakan http:// atau https://');
+    }
+  } catch {
+    errors.push('Link sumber harus berupa URL yang valid');
+  }
+
+  if (source_url.length > 1000) {
+    errors.push(`Link sumber terlalu panjang (maksimal 1000 karakter, saat ini: ${source_url.length})`);
+  }
+
+  return errors;
+};

@@ -7,6 +7,11 @@ import {
   createPenilaianAdminHandler,
   updatePenilaianHandler,
   deletePenilaianHandler,
+  resetSemuaPenilaianHandler,
+  resetPenilaianByJuriHandler,
+  resetPenilaianByPesertaHandler,
+  resetPenilaianSayaHandler,
+  resetSatuPenilaianSayaHandler,
 } from '../Controller/penilaianController.js';
 import { authenticate } from '../Middleware/auth.js';
 
@@ -35,6 +40,20 @@ const isJuriOrAdmin = (req, res, next) => {
 
 router.get('/', authenticate, isAdmin, getPenilaians);
 router.get('/saya', authenticate, isJuri, getPenilaianSaya);
+
+/* =========================
+   ROUTE RESET BARU
+========================= */
+
+/* admin */
+router.delete('/reset/all', authenticate, isAdmin, resetSemuaPenilaianHandler);
+router.delete('/reset/juri/:juriId', authenticate, isAdmin, resetPenilaianByJuriHandler);
+router.delete('/reset/peserta/:pesertaId', authenticate, isAdmin, resetPenilaianByPesertaHandler);
+
+/* juri */
+router.delete('/reset/saya', authenticate, isJuri, resetPenilaianSayaHandler);
+router.delete('/reset/saya/:id', authenticate, isJuri, resetSatuPenilaianSayaHandler);
+
 router.get('/:id', authenticate, isJuriOrAdmin, getPenilaianDetail);
 
 router.post('/', authenticate, isJuri, createPenilaianHandler);

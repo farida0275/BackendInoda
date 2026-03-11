@@ -196,6 +196,60 @@ export const deletePenilaianById = async (id) => {
   return rows[0];
 };
 
+/* =========================
+   TAMBAHAN RESET
+========================= */
+
+export const resetAllPenilaian = async () => {
+  const q = `
+    DELETE FROM penilaian_juri
+    RETURNING id
+  `;
+  const { rows } = await pool.query(q);
+  return rows;
+};
+
+export const resetPenilaianByJuriId = async (juriId) => {
+  const q = `
+    DELETE FROM penilaian_juri
+    WHERE juri_id = $1
+    RETURNING id
+  `;
+  const { rows } = await pool.query(q, [juriId]);
+  return rows;
+};
+
+export const resetPenilaianByPesertaId = async (pesertaId) => {
+  const q = `
+    DELETE FROM penilaian_juri
+    WHERE peserta_id = $1
+    RETURNING id
+  `;
+  const { rows } = await pool.query(q, [pesertaId]);
+  return rows;
+};
+
+export const resetPenilaianMilikJuri = async (juriId) => {
+  const q = `
+    DELETE FROM penilaian_juri
+    WHERE juri_id = $1
+    RETURNING id
+  `;
+  const { rows } = await pool.query(q, [juriId]);
+  return rows;
+};
+
+export const resetSatuPenilaianMilikJuri = async (id, juriId) => {
+  const q = `
+    DELETE FROM penilaian_juri
+    WHERE id = $1
+      AND juri_id = $2
+    RETURNING id
+  `;
+  const { rows } = await pool.query(q, [id, juriId]);
+  return rows[0];
+};
+
 export default {
   getAllPenilaian,
   getPenilaianByJuriId,
@@ -206,4 +260,10 @@ export default {
   createPenilaian,
   updatePenilaianById,
   deletePenilaianById,
+
+  resetAllPenilaian,
+  resetPenilaianByJuriId,
+  resetPenilaianByPesertaId,
+  resetPenilaianMilikJuri,
+  resetSatuPenilaianMilikJuri,
 };

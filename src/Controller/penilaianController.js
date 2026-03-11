@@ -8,6 +8,11 @@ import {
   findPenugasanForJuri,
   findPenugasanBySlot,
   findPenilaianByUnique,
+  resetAllPenilaian,
+  resetPenilaianByJuriId,
+  resetPenilaianByPesertaId,
+  resetPenilaianMilikJuri,
+  resetSatuPenilaianMilikJuri,
 } from '../Models/penilaianModel.js';
 
 import {
@@ -72,7 +77,13 @@ const hitungSkor = (body) => {
     Number(body.video_dampak || 0),
   ];
 
-  const substansiTotal =
+  const totalProposal = proposalItems.reduce((sum, item) => sum + item, 0);
+  const totalVideo = videoItems.reduce((sum, item) => sum + item, 0);
+
+  const rataProposal = totalProposal / 5;
+  const rataVideo = totalVideo / 5;
+
+  const totalSubstansi =
     Number(body.substansi_kesiapterapan || 0) +
     Number(body.substansi_kebaharuan || 0) +
     Number(body.substansi_komersialisasi || 0) +
@@ -80,15 +91,9 @@ const hitungSkor = (body) => {
     Number(body.substansi_kemanfaatan || 0) +
     Number(body.substansi_kedalaman || 0);
 
-  const rataProposal =
-    proposalItems.reduce((a, b) => a + b, 0) / proposalItems.length;
-
-  const rataVideo =
-    videoItems.reduce((a, b) => a + b, 0) / videoItems.length;
-
-  const skorProposal = Number((rataProposal * 0.2).toFixed(2));
-  const skorVideo = Number((rataVideo * 0.2).toFixed(2));
-  const skorSubstansi = Number((substansiTotal * 0.6).toFixed(2));
+  const skorProposal = Number(((rataProposal / 100) * 20).toFixed(2));
+  const skorVideo = Number(((rataVideo / 100) * 20).toFixed(2));
+  const skorSubstansi = Number(((totalSubstansi / 120) * 60).toFixed(2));
   const skorAkhir = Number(
     (skorProposal + skorVideo + skorSubstansi).toFixed(2)
   );
@@ -101,11 +106,20 @@ const hitungSkor = (body) => {
   };
 };
 
-const validatePenilaianPayload = (body) => {
+const validatePenilaianPayload = (body, { withSlot = false } = {}) => {
   const errors = [];
 
   errors.push(...validateRequiredNumber(body.peserta_id, 'peserta_id', { min: 1 }));
   errors.push(...validateRequiredNumber(body.inovasi_id, 'inovasi_id', { min: 1 }));
+
+  if (withSlot) {
+    errors.push(
+      ...validateRequiredNumber(body.slot_penilai, 'slot_penilai', {
+        min: 1,
+        max: 3,
+      })
+    );
+  }
 
   errors.push(...validateRequiredNumber(body.proposal_tampilan, 'proposal_tampilan', { min: 0, max: 100 }));
   errors.push(...validateRequiredNumber(body.proposal_kelengkapan, 'proposal_kelengkapan', { min: 0, max: 100 }));
@@ -170,6 +184,7 @@ const buildPayload = (body, juriId) => {
 export const getPenilaians = async (req, res) => {
   try {
     const list = await getAllPenilaian();
+
     return res.json({
       message: 'Daftar penilaian berhasil diambil',
       count: list.length,
@@ -272,7 +287,6 @@ export const createPenilaianHandler = async (req, res) => {
     }
 
     const errors = validatePenilaianPayload(req.body);
-
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(errors, 'Validasi penilaian gagal')
@@ -354,16 +368,14 @@ export const createPenilaianAdminHandler = async (req, res) => {
       );
     }
 
-    const { peserta_id, inovasi_id, slot_penilai } = req.body;
-
-    const errors = validatePenilaianPayload(req.body);
-    errors.push(...validateRequiredNumber(slot_penilai, 'slot_penilai', { min: 1, max: 3 }));
-
+    const errors = validatePenilaianPayload(req.body, { withSlot: true });
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(errors, 'Validasi penilaian admin gagal')
       );
     }
+
+    const { peserta_id, inovasi_id, slot_penilai } = req.body;
 
     const penugasan = await findPenugasanBySlot({
       peserta_id: Number(peserta_id),
@@ -462,7 +474,6 @@ export const updatePenilaianHandler = async (req, res) => {
     };
 
     const errors = validatePenilaianPayload(mergedBody);
-
     if (errors.length > 0) {
       return res.status(400).json(
         formatErrorResponse(errors, 'Validasi penilaian gagal')
@@ -544,6 +555,226 @@ export const deletePenilaianHandler = async (req, res) => {
   }
 };
 
+/* =========================
+   TAMBAHAN RESET ADMIN
+========================= */
+
+export const resetSemuaPenilaianHandler = async (req, res) => {
+  try {
+    if (!isAdmin(req.user)) {
+      return res.status(403).json(
+        formatErrorResponse(
+          ['Hanya admin yang dapat mereset semua penilaian'],
+          'Forbidden'
+        )
+      );
+    }
+
+    const deletedRows = await resetAllPenilaian();
+
+    return res.json({
+      message: 'Semua penilaian berhasil direset',
+      data: {
+        deletedCount: deletedRows.length,
+        deletedIds: deletedRows.map((item) => item.id),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json(
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
+    );
+  }
+};
+
+export const resetPenilaianByJuriHandler = async (req, res) => {
+  try {
+    if (!isAdmin(req.user)) {
+      return res.status(403).json(
+        formatErrorResponse(
+          ['Hanya admin yang dapat mereset penilaian berdasarkan juri'],
+          'Forbidden'
+        )
+      );
+    }
+
+    const { juriId } = req.params;
+    const idErrors = validateId(juriId);
+
+    if (idErrors.length > 0) {
+      return res.status(400).json(
+        formatErrorResponse(idErrors, 'Reset gagal: juri_id tidak valid')
+      );
+    }
+
+    const deletedRows = await resetPenilaianByJuriId(Number(juriId));
+
+    return res.json({
+      message: `Penilaian milik juri ID ${juriId} berhasil direset`,
+      data: {
+        juri_id: Number(juriId),
+        deletedCount: deletedRows.length,
+        deletedIds: deletedRows.map((item) => item.id),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json(
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
+    );
+  }
+};
+
+export const resetPenilaianByPesertaHandler = async (req, res) => {
+  try {
+    if (!isAdmin(req.user)) {
+      return res.status(403).json(
+        formatErrorResponse(
+          ['Hanya admin yang dapat mereset penilaian berdasarkan peserta'],
+          'Forbidden'
+        )
+      );
+    }
+
+    const { pesertaId } = req.params;
+    const idErrors = validateId(pesertaId);
+
+    if (idErrors.length > 0) {
+      return res.status(400).json(
+        formatErrorResponse(idErrors, 'Reset gagal: peserta_id tidak valid')
+      );
+    }
+
+    const deletedRows = await resetPenilaianByPesertaId(Number(pesertaId));
+
+    return res.json({
+      message: `Penilaian peserta ID ${pesertaId} berhasil direset`,
+      data: {
+        peserta_id: Number(pesertaId),
+        deletedCount: deletedRows.length,
+        deletedIds: deletedRows.map((item) => item.id),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json(
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
+    );
+  }
+};
+
+/* =========================
+   TAMBAHAN RESET JURI
+========================= */
+
+export const resetPenilaianSayaHandler = async (req, res) => {
+  try {
+    if (!isJuri(req.user)) {
+      return res.status(403).json(
+        formatErrorResponse(
+          ['Hanya juri yang dapat mereset penilaian miliknya'],
+          'Forbidden'
+        )
+      );
+    }
+
+    const deletedRows = await resetPenilaianMilikJuri(Number(req.user.id));
+
+    return res.json({
+      message: 'Semua penilaian milik juri berhasil direset',
+      data: {
+        juri_id: Number(req.user.id),
+        deletedCount: deletedRows.length,
+        deletedIds: deletedRows.map((item) => item.id),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json(
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
+    );
+  }
+};
+
+export const resetSatuPenilaianSayaHandler = async (req, res) => {
+  try {
+    if (!isJuri(req.user)) {
+      return res.status(403).json(
+        formatErrorResponse(
+          ['Hanya juri yang dapat mereset penilaian miliknya'],
+          'Forbidden'
+        )
+      );
+    }
+
+    const { id } = req.params;
+    const idErrors = validateId(id);
+
+    if (idErrors.length > 0) {
+      return res.status(400).json(
+        formatErrorResponse(idErrors, 'Reset gagal: ID tidak valid')
+      );
+    }
+
+    const existing = await getPenilaianById(id);
+
+    if (!existing) {
+      return res.status(404).json(
+        formatErrorResponse(
+          [`Penilaian dengan ID ${id} tidak ditemukan`],
+          'Data tidak ditemukan'
+        )
+      );
+    }
+
+    if (Number(existing.juri_id) !== Number(req.user.id)) {
+      return res.status(403).json(
+        formatErrorResponse(
+          ['Kamu hanya dapat mereset penilaian milikmu sendiri'],
+          'Forbidden'
+        )
+      );
+    }
+
+    const deleted = await resetSatuPenilaianMilikJuri(
+      Number(id),
+      Number(req.user.id)
+    );
+
+    return res.json({
+      message: 'Penilaian milik juri berhasil direset',
+      data: {
+        deletedId: deleted?.id || Number(id),
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json(
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
+    );
+  }
+};
+
 export default {
   getPenilaians,
   getPenilaianSaya,
@@ -552,4 +783,10 @@ export default {
   createPenilaianAdminHandler,
   updatePenilaianHandler,
   deletePenilaianHandler,
+
+  resetSemuaPenilaianHandler,
+  resetPenilaianByJuriHandler,
+  resetPenilaianByPesertaHandler,
+  resetPenilaianSayaHandler,
+  resetSatuPenilaianSayaHandler,
 };

@@ -5,7 +5,6 @@ import { upload, uploadToCloudinary } from '../Middleware/upload.js';
 
 const router = express.Router();
 
-// Middleware untuk check admin role
 const isAdmin = (req, res, next) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ message: 'Forbidden: Admin access required' });
