@@ -10,7 +10,7 @@ import {
 } from '../Controller/dataPesertaController.js';
 
 import { authenticate } from '../Middleware/auth.js';
-import { uploadPdf, uploadPdfFieldsToCloudinary } from '../Middleware/uploadPdf.js';
+import { uploadPdf, uploadPdfFieldsToDrive } from '../Middleware/uploadPdf.js';
 
 const router = express.Router();
 
@@ -39,7 +39,7 @@ router.post(
   '/',
   authenticate,
   pdfFields,
-  uploadPdfFieldsToCloudinary('pdf_peserta'),
+  uploadPdfFieldsToDrive(),
   createDataPesertaHandler
 );
 
@@ -47,7 +47,7 @@ router.put(
   '/:id',
   authenticate,
   pdfFields,
-  uploadPdfFieldsToCloudinary('pdf_peserta'),
+  uploadPdfFieldsToDrive(),
   updateDataPesertaHandler
 );
 

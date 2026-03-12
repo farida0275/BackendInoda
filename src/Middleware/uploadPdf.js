@@ -1,18 +1,17 @@
-import multer from 'multer';
-import cloudinary from '../config/cloudinary.js';
-import streamifier from 'streamifier';
-import path from 'path';
+import multer from "multer";
+import path from "path";
+import { uploadBufferToDrive } from "../utils/googleDrive.js";
 
 const storage = multer.memoryStorage();
 
 const pdfFilter = (req, file, cb) => {
-  const ext = path.extname(file.originalname || '').toLowerCase();
+  const ext = path.extname(file.originalname || "").toLowerCase();
   const mime = file.mimetype;
 
-  if (mime === 'application/pdf' && ext === '.pdf') {
+  if (mime === "application/pdf" && ext === ".pdf") {
     cb(null, true);
   } else {
-    cb(new Error('Hanya file PDF yang diperbolehkan'), false);
+    cb(new Error("Hanya file PDF yang diperbolehkan"), false);
   }
 };
 
@@ -20,32 +19,21 @@ export const uploadPdf = multer({
   storage,
   fileFilter: pdfFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB per file
+    fileSize: 10 * 1024 * 1024,
     files: 5,
   },
 });
 
-// helper upload buffer -> cloudinary
-const streamUpload = (buffer, options = {}) =>
-  new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(options, (error, result) => {
-      if (error) return reject(error);
-      resolve(result);
-    });
-
-    streamifier.createReadStream(buffer).pipe(stream);
-  });
-
-const sanitizeFileName = (name = '') => {
+const sanitizeFileName = (name = "") => {
   return name
     .toLowerCase()
-    .replace(/\.pdf$/i, '')
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/\.pdf$/i, "")
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 };
 
-export const uploadPdfFieldsToCloudinary = (folder = 'pdf_peserta') => {
+export const uploadPdfFieldsToDrive = () => {
   return async (req, res, next) => {
     try {
       if (!req.files || Object.keys(req.files).length === 0) {
@@ -60,36 +48,28 @@ export const uploadPdfFieldsToCloudinary = (folder = 'pdf_peserta') => {
         if (!file?.buffer) continue;
 
         const originalBaseName = sanitizeFileName(file.originalname || fieldName);
-        const safeBaseName = originalBaseName || sanitizeFileName(fieldName) || 'file';
+        const safeBaseName = originalBaseName || sanitizeFileName(fieldName) || "file";
         const safeName = `${safeBaseName}-${Date.now()}.pdf`;
 
-        const result = await streamUpload(file.buffer, {
-          resource_type: 'raw',
-          folder,
-          public_id: safeName,
-          overwrite: false,
-          use_filename: false,
-          unique_filename: false,
-          filename_override: file.originalname,
-        });
+        const result = await uploadBufferToDrive(file, safeName);
 
         uploaded[fieldName] = {
-          url: result.secure_url,
-          public_id: result.public_id,
-          bytes: result.bytes,
+          url: result.url,
+          file_id: result.fileId,
+          bytes: Number(result.size || 0),
           originalname: file.originalname,
-          resource_type: result.resource_type,
-          format: result.format || 'pdf',
+          resource_type: "drive",
+          format: "pdf",
         };
       }
 
       req.uploadedFiles = uploaded;
       return next();
     } catch (err) {
-      console.error('uploadPdfFieldsToCloudinary error:', err);
+      console.error("uploadPdfFieldsToDrive error:", err);
       return res.status(500).json({
-        message: 'Upload PDF gagal',
-        errors: [err.message || 'Terjadi kesalahan saat upload PDF'],
+        message: "Upload PDF ke Google Drive gagal",
+        errors: [err.message || "Terjadi kesalahan saat upload PDF"],
         timestamp: new Date().toISOString(),
       });
     }
