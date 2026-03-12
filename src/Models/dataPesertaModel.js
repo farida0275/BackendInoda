@@ -102,3 +102,9 @@ export const deleteDataPesertaById = async (id) => {
   const { rows } = await pool.query(q, [id]);
   return rows[0];
 };
+
+export const resetAllDataPeserta = async () => {
+  await pool.query(`DELETE FROM data_peserta`);
+  await pool.query(`ALTER SEQUENCE data_peserta_id_seq RESTART WITH 1`);
+  return { success: true };
+};

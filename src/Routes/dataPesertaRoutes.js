@@ -7,6 +7,7 @@ import {
   updateDataPesertaHandler,
   updateSeleksiPesertaHandler,
   deleteDataPesertaHandler,
+  resetAllDataPesertaHandler,
 } from '../Controller/dataPesertaController.js';
 
 import { authenticate } from '../Middleware/auth.js';
@@ -32,6 +33,8 @@ const pdfFields = uploadPdf.fields([
 router.get('/', authenticate, getDataPesertas);
 
 router.get('/my-submissions', authenticate, getMySubmissions);
+
+router.delete('/reset/all', authenticate, isAdmin, resetAllDataPesertaHandler);
 
 router.get('/:id', authenticate, getDataPesertaDetail);
 

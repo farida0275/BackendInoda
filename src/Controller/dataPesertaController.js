@@ -6,6 +6,7 @@
   updateDataPesertaById,
   updateSeleksiPesertaById,
   deleteDataPesertaById,
+  resetAllDataPeserta,
 } from '../Models/dataPesertaModel.js';
 
 import { getAllInovasi } from '../Models/inovasiModel.js';
@@ -77,6 +78,7 @@ const filterColumnsForParticipant = (record) => {
     'waktu_uji_coba',
     'waktu_penerapan',
     'waktu_pengembangan',
+    'link_video',
     'created_at',
     'tahap_seleksi',
     'status_seleksi',
@@ -214,9 +216,10 @@ export const createDataPesertaHandler = async (req, res) => {
       tujuan_inovasi,
       manfaat_diperoleh,
       hasil_inovasi,
+      link_video,
     } = req.body;
 
-    const kategoriValue = String(kategori ?? "");
+    const kategoriValue = String(kategori ?? '');
 
     const kategoriOptions = await getKategoriOptions();
     errors.push(...validateNama(nama_inovasi));
@@ -226,11 +229,11 @@ export const createDataPesertaHandler = async (req, res) => {
     errors.push(...validateNama(nama_inisiator));
     errors.push(...validateEnum(jenis_inovasi, 'jenis_inovasi', jenisOptions));
 
-    // no strict 150-char limit; use default max (255) or adjust as needed
     errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi'));
     errors.push(...validateOptionalString(tematik, 'tematik'));
     errors.push(...validateOptionalString(urusan_utama, 'urusan_utama'));
     errors.push(...validateOptionalString(urusan_beririsan, 'urusan_beririsan', 255));
+    errors.push(...validateOptionalString(link_video, 'link_video', 1000));
 
     errors.push(...validateOptionalDate(waktu_uji_coba, 'waktu_uji_coba'));
     errors.push(...validateOptionalDate(waktu_penerapan, 'waktu_penerapan'));
@@ -266,6 +269,7 @@ export const createDataPesertaHandler = async (req, res) => {
       tujuan_inovasi,
       manfaat_diperoleh,
       hasil_inovasi,
+      link_video: link_video || null,
 
       anggaran_pdf: uploaded.anggaran_pdf?.url || null,
       profil_bisnis_pdf: uploaded.profil_bisnis_pdf?.url || null,
@@ -335,21 +339,23 @@ export const updateDataPesertaHandler = async (req, res) => {
       tujuan_inovasi,
       manfaat_diperoleh,
       hasil_inovasi,
+      link_video,
     } = req.body;
 
     const normalizeEmptyToNull = (value) => {
-      if (value === "") return null;
+      if (value === '') return null;
       return value;
     };
 
     const kategoriValue =
-      kategori !== undefined && kategori !== null && kategori !== ""
+      kategori !== undefined && kategori !== null && kategori !== ''
         ? Number(kategori)
         : undefined;
 
     const normalizedWaktuUjiCoba = normalizeEmptyToNull(waktu_uji_coba);
     const normalizedWaktuPenerapan = normalizeEmptyToNull(waktu_penerapan);
     const normalizedWaktuPengembangan = normalizeEmptyToNull(waktu_pengembangan);
+    const normalizedLinkVideo = normalizeEmptyToNull(link_video);
 
     const errors = [];
     const kategoriOptions = await getKategoriOptions();
@@ -379,7 +385,6 @@ export const updateDataPesertaHandler = async (req, res) => {
     }
 
     if (bentuk_inovasi !== undefined) {
-      // allow longer values (default max 255)
       errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi'));
     }
 
@@ -393,6 +398,10 @@ export const updateDataPesertaHandler = async (req, res) => {
 
     if (urusan_beririsan !== undefined) {
       errors.push(...validateOptionalString(urusan_beririsan, 'urusan_beririsan', 255));
+    }
+
+    if (link_video !== undefined) {
+      errors.push(...validateOptionalString(normalizedLinkVideo, 'link_video', 1000));
     }
 
     if (waktu_uji_coba !== undefined) {
@@ -446,6 +455,7 @@ export const updateDataPesertaHandler = async (req, res) => {
     assignIfDefined('tematik', tematik);
     assignIfDefined('urusan_utama', urusan_utama);
     assignIfDefined('urusan_beririsan', urusan_beririsan);
+    assignIfDefined('link_video', normalizedLinkVideo);
     assignIfDefined('waktu_uji_coba', normalizedWaktuUjiCoba);
     assignIfDefined('waktu_penerapan', normalizedWaktuPenerapan);
     assignIfDefined('waktu_pengembangan', normalizedWaktuPengembangan);
@@ -590,6 +600,51 @@ export const deleteDataPesertaHandler = async (req, res) => {
   }
 };
 
+export const resetAllDataPesertaHandler = async (req, res) => {
+  try {
+    if (!isAdmin(req.user)) {
+      return res.status(403).json(
+        formatErrorResponse(['Hanya admin yang dapat mereset semua data peserta'], 'Forbidden')
+      );
+    }
+
+    const allData = await getAllDataPeserta();
+
+    for (const record of allData) {
+      for (const col of PDF_COLS) {
+        const oldUrl = record[col];
+        const oldPublicId = extractPublicIdFromCloudinaryUrl(oldUrl);
+
+        if (oldPublicId) {
+          try {
+            await deleteCloudinaryRawByPublicId(oldPublicId);
+          } catch (e) {
+            console.error(
+              `Gagal hapus file reset all (${col}) public_id=${oldPublicId}:`,
+              e?.message || e
+            );
+          }
+        }
+      }
+    }
+
+    await resetAllDataPeserta();
+
+    return res.json({
+      message: 'Semua data peserta berhasil direset',
+      data: {
+        total_deleted: allData.length,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json(
+      formatErrorResponse(['Terjadi kesalahan saat reset semua data peserta'], 'Server error')
+    );
+  }
+};
+
 export default {
   getDataPesertas,
   getMySubmissions,
@@ -598,4 +653,5 @@ export default {
   updateDataPesertaHandler,
   updateSeleksiPesertaHandler,
   deleteDataPesertaHandler,
+  resetAllDataPesertaHandler,
 };
