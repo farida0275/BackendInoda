@@ -2,23 +2,25 @@ import { google } from 'googleapis';
 import { Readable } from 'stream';
 
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
-
-const serviceAccount = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-  ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
-  : null;
-
-if (!serviceAccount) {
-  throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON belum diset');
-}
+const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
 if (!FOLDER_ID) {
   throw new Error('GOOGLE_DRIVE_FOLDER_ID belum diset');
 }
 
+if (!clientEmail) {
+  throw new Error('GOOGLE_CLIENT_EMAIL belum diset');
+}
+
+if (!privateKey) {
+  throw new Error('GOOGLE_PRIVATE_KEY belum diset');
+}
+
 const auth = new google.auth.GoogleAuth({
   credentials: {
-    client_email: serviceAccount.client_email,
-    private_key: serviceAccount.private_key,
+    client_email: clientEmail,
+    private_key: privateKey,
   },
   scopes: ['https://www.googleapis.com/auth/drive'],
 });
@@ -73,10 +75,7 @@ export const uploadBufferToDrive = async (file, customName = null) => {
 
 export const deleteFileFromDrive = async (fileId) => {
   if (!fileId) return;
-
-  await drive.files.delete({
-    fileId,
-  });
+  await drive.files.delete({ fileId });
 };
 
 export default drive;
