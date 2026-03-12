@@ -1,17 +1,21 @@
-import { google } from 'googleapis';
-import path from 'path';
-import { Readable } from 'stream';
+import { google } from "googleapis";
+import path from "path";
+import { fileURLToPath } from "url";
+import { Readable } from "stream";
 
-const KEY_FILE_PATH = path.join(process.cwd(), 'src', 'config', 'google-drive.json');
-const FOLDER_ID = '18y5mqn9vw3v9m78LdCsfVpnzk8zoIeQO';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const KEY_FILE_PATH = path.join(__dirname, "../config/google-drive.json");
+const FOLDER_ID = "18y5mqn9vw3v9m78LdCsfVpnzk8zoIeQO";
 
 const auth = new google.auth.GoogleAuth({
   keyFile: KEY_FILE_PATH,
-  scopes: ['https://www.googleapis.com/auth/drive'],
+  scopes: ["https://www.googleapis.com/auth/drive"],
 });
 
 const drive = google.drive({
-  version: 'v3',
+  version: "v3",
   auth,
 });
 
@@ -24,7 +28,7 @@ const bufferToStream = (buffer) => {
 
 export const uploadBufferToDrive = async (file, customName = null) => {
   if (!file?.buffer) {
-    throw new Error('File buffer tidak ditemukan');
+    throw new Error("File buffer tidak ditemukan");
   }
 
   const response = await drive.files.create({
@@ -36,7 +40,7 @@ export const uploadBufferToDrive = async (file, customName = null) => {
       mimeType: file.mimetype,
       body: bufferToStream(file.buffer),
     },
-    fields: 'id, name, mimeType, size',
+    fields: "id, name, mimeType, size",
   });
 
   const fileId = response.data.id;
@@ -44,8 +48,8 @@ export const uploadBufferToDrive = async (file, customName = null) => {
   await drive.permissions.create({
     fileId,
     requestBody: {
-      role: 'reader',
-      type: 'anyone',
+      role: "reader",
+      type: "anyone",
     },
   });
 
