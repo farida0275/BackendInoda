@@ -20,7 +20,7 @@ import {
   formatErrorResponse,
 } from '../utils/validator.js';
 
-import { deleteFileFromDrive } from '../utils/googleDrive.js';
+import { deleteCloudinaryRawByPublicId } from '../utils/cloudinaryDelete.js';
 
 const tahapanOptions = ['Inisiatif', 'Uji Coba', 'Penerapan'];
 const inisiatorOptions = ['Kepala Daerah', 'Anggota DPRD', 'OPD', 'ASN', 'Masyarakat'];
@@ -52,24 +52,17 @@ const canViewDetail = (req, record) => {
   return Number(record.dibuat_oleh) === Number(req.user?.id);
 };
 
-const extractFileIdFromDriveUrl = (url) => {
+const extractPublicIdFromCloudinaryUrl = (url) => {
   if (!url) return null;
 
-  try {
-    const parsed = new URL(url);
+  const afterUpload = url.split('/upload/')[1];
+  if (!afterUpload) return null;
 
-    // format: https://drive.google.com/uc?id=FILE_ID
-    const idFromQuery = parsed.searchParams.get('id');
-    if (idFromQuery) return idFromQuery;
+  let path = afterUpload.split('?')[0];
+  path = path.replace(/^v\d+\//, '');
+  path = path.replace(/\.[^/.]+$/, '');
 
-    // format cadangan: /file/d/FILE_ID/view
-    const match = parsed.pathname.match(/\/file\/d\/([^/]+)/);
-    if (match?.[1]) return match[1];
-
-    return null;
-  } catch {
-    return null;
-  }
+  return path;
 };
 
 // untuk dashboard participant: semua data, tapi kolom dibatasi
@@ -193,6 +186,7 @@ export const createDataPesertaHandler = async (req, res) => {
   try {
     const uploaded = req.uploadedFiles || {};
 
+    // Validasi file yang wajib diupload
     const errors = [];
     if (!uploaded.proposal_pdf) {
       errors.push('File proposal_pdf wajib diupload');
@@ -222,7 +216,7 @@ export const createDataPesertaHandler = async (req, res) => {
       hasil_inovasi,
     } = req.body;
 
-    const kategoriValue = String(kategori ?? '');
+    const kategoriValue = String(kategori ?? "");
 
     const kategoriOptions = await getKategoriOptions();
     errors.push(...validateNama(nama_inovasi));
@@ -232,6 +226,7 @@ export const createDataPesertaHandler = async (req, res) => {
     errors.push(...validateNama(nama_inisiator));
     errors.push(...validateEnum(jenis_inovasi, 'jenis_inovasi', jenisOptions));
 
+    // no strict 150-char limit; use default max (255) or adjust as needed
     errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi'));
     errors.push(...validateOptionalString(tematik, 'tematik'));
     errors.push(...validateOptionalString(urusan_utama, 'urusan_utama'));
@@ -343,12 +338,12 @@ export const updateDataPesertaHandler = async (req, res) => {
     } = req.body;
 
     const normalizeEmptyToNull = (value) => {
-      if (value === '') return null;
+      if (value === "") return null;
       return value;
     };
 
     const kategoriValue =
-      kategori !== undefined && kategori !== null && kategori !== ''
+      kategori !== undefined && kategori !== null && kategori !== ""
         ? Number(kategori)
         : undefined;
 
@@ -384,6 +379,7 @@ export const updateDataPesertaHandler = async (req, res) => {
     }
 
     if (bentuk_inovasi !== undefined) {
+      // allow longer values (default max 255)
       errors.push(...validateOptionalString(bentuk_inovasi, 'bentuk_inovasi'));
     }
 
@@ -462,13 +458,13 @@ export const updateDataPesertaHandler = async (req, res) => {
     for (const col of PDF_COLS) {
       if (uploaded[col]?.url) {
         const oldUrl = existing[col];
-        const oldFileId = extractFileIdFromDriveUrl(oldUrl);
+        const oldPublicId = extractPublicIdFromCloudinaryUrl(oldUrl);
 
-        if (oldFileId) {
+        if (oldPublicId) {
           try {
-            await deleteFileFromDrive(oldFileId);
+            await deleteCloudinaryRawByPublicId(oldPublicId);
           } catch (e) {
-            console.error(`Gagal hapus file lama (${col}) file_id=${oldFileId}:`, e?.message || e);
+            console.error(`Gagal hapus file lama (${col}) public_id=${oldPublicId}:`, e?.message || e);
           }
         }
 
@@ -568,13 +564,13 @@ export const deleteDataPesertaHandler = async (req, res) => {
 
     for (const col of PDF_COLS) {
       const oldUrl = existing[col];
-      const oldFileId = extractFileIdFromDriveUrl(oldUrl);
+      const oldPublicId = extractPublicIdFromCloudinaryUrl(oldUrl);
 
-      if (oldFileId) {
+      if (oldPublicId) {
         try {
-          await deleteFileFromDrive(oldFileId);
+          await deleteCloudinaryRawByPublicId(oldPublicId);
         } catch (e) {
-          console.error(`Gagal hapus file (${col}) file_id=${oldFileId}:`, e?.message || e);
+          console.error(`Gagal hapus file (${col}) public_id=${oldPublicId}:`, e?.message || e);
         }
       }
     }
