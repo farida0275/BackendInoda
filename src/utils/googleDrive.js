@@ -1,25 +1,12 @@
 import { google } from 'googleapis';
+import path from 'path';
 import { Readable } from 'stream';
 
-const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
-
-const serviceAccount = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-  ? JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
-  : null;
-
-if (!serviceAccount) {
-  throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON belum diset');
-}
-
-if (!FOLDER_ID) {
-  throw new Error('GOOGLE_DRIVE_FOLDER_ID belum diset');
-}
+const KEY_FILE_PATH = path.join(process.cwd(), 'src', 'config', 'google-drive.json');
+const FOLDER_ID = '18y5mqn9vw3v9m78LdCsfVpnzk8zoIeQO';
 
 const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: serviceAccount.client_email,
-    private_key: serviceAccount.private_key,
-  },
+  keyFile: KEY_FILE_PATH,
   scopes: ['https://www.googleapis.com/auth/drive'],
 });
 
