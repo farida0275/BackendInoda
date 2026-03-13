@@ -4,6 +4,7 @@ import {
   createPenugasan,
   createPenugasanByInovasi,
   deletePenugasanById,
+  getEligiblePesertaById,
 } from '../Models/penugasanJuriModel.js';
 
 const formatErrorResponse = (errors, message = 'Validasi gagal') => ({
@@ -103,6 +104,28 @@ export const createPenugasanHandler = async (req, res) => {
         .json(formatErrorResponse(errors, 'Validasi penugasan juri gagal'));
     }
 
+    const pesertaEligible = await getEligiblePesertaById(Number(peserta_id));
+
+    if (!pesertaEligible) {
+      return res.status(400).json(
+        formatErrorResponse(
+          [
+            'Peserta tidak memenuhi syarat untuk penugasan juri. Pastikan peserta sudah masuk tahap semifinal dan status seleksi masih Diproses.',
+          ],
+          'Validasi penugasan juri gagal'
+        )
+      );
+    }
+
+    if (Number(pesertaEligible.kategori) !== Number(inovasi_id)) {
+      return res.status(400).json(
+        formatErrorResponse(
+          ['inovasi_id tidak sesuai dengan kategori peserta'],
+          'Validasi penugasan juri gagal'
+        )
+      );
+    }
+
     const payload = {
       peserta_id: Number(peserta_id),
       inovasi_id: Number(inovasi_id),
@@ -196,7 +219,9 @@ export const createPenugasanByInovasiHandler = async (req, res) => {
     if (err.message === 'PESERTA_BY_INOVASI_NOT_FOUND') {
       return res.status(404).json(
         formatErrorResponse(
-          ['Tidak ada peserta yang cocok dengan inovasi ini'],
+          [
+            'Tidak ada peserta yang cocok dengan inovasi ini dan memenuhi syarat penilaian juri',
+          ],
           'Data tidak ditemukan'
         )
       );

@@ -1,13 +1,22 @@
 import pool from '../config/db.js';
 
+const JURI_TAHAP_SELEKSI = 'semifinal';
+const JURI_STATUS_SELEKSI = 'Diproses';
+
 export const getAllPenugasan = async () => {
   const q = `
     SELECT
       pj.*,
       u.nama AS nama_juri,
-      u.email AS email_juri
+      u.email AS email_juri,
+      dp.nama_inovasi,
+      dp.kategori,
+      dp.nama_inisiator,
+      dp.tahap_seleksi,
+      dp.status_seleksi
     FROM penugasan_juri pj
     JOIN users u ON pj.juri_id = u.id
+    JOIN data_peserta dp ON pj.peserta_id = dp.id
     ORDER BY pj.id DESC
   `;
   const { rows } = await pool.query(q);
@@ -40,15 +49,46 @@ export const getPenugasanByJuri = async (juriId) => {
       dp.dokumen_haki_pdf,
       dp.penghargaan_pdf,
       dp.proposal_pdf,
+      dp.tahap_seleksi,
+      dp.status_seleksi,
       inv.name AS nama_kategori_inovasi
     FROM penugasan_juri pj
     JOIN data_peserta dp ON pj.peserta_id = dp.id
     JOIN inovasi inv ON pj.inovasi_id = inv.id
     WHERE pj.juri_id = $1
+      AND dp.tahap_seleksi = $2
+      AND dp.status_seleksi = $3
     ORDER BY pj.id DESC
   `;
-  const { rows } = await pool.query(q, [juriId]);
+  const { rows } = await pool.query(q, [
+    juriId,
+    JURI_TAHAP_SELEKSI,
+    JURI_STATUS_SELEKSI,
+  ]);
   return rows;
+};
+
+export const getEligiblePesertaById = async (pesertaId) => {
+  const q = `
+    SELECT
+      id,
+      kategori,
+      nama_inovasi,
+      nama_inisiator,
+      tahap_seleksi,
+      status_seleksi
+    FROM data_peserta
+    WHERE id = $1
+      AND tahap_seleksi = $2
+      AND status_seleksi = $3
+    LIMIT 1
+  `;
+  const { rows } = await pool.query(q, [
+    pesertaId,
+    JURI_TAHAP_SELEKSI,
+    JURI_STATUS_SELEKSI,
+  ]);
+  return rows[0];
 };
 
 export const createPenugasan = async ({
@@ -95,32 +135,27 @@ export const createPenugasanByInovasi = async ({
       throw new Error('INOVASI_NOT_FOUND');
     }
 
-    const inovasi = inovasiRows[0];
-    console.log('[DEBUG] inovasi dipilih:', inovasi);
-
-    // Cek semua peserta yang kategori-nya sesuai inovasi_id
     const pesertaQuery = `
-      SELECT id, nama_inovasi, kategori, nama_inisiator
+      SELECT
+        id,
+        nama_inovasi,
+        kategori,
+        nama_inisiator,
+        tahap_seleksi,
+        status_seleksi
       FROM data_peserta
       WHERE kategori = $1
+        AND tahap_seleksi = $2
+        AND status_seleksi = $3
       ORDER BY id ASC
     `;
-    const { rows: pesertaRows } = await client.query(pesertaQuery, [inovasi_id]);
-
-    console.log('[DEBUG] inovasi_id:', inovasi_id);
-    console.log('[DEBUG] peserta cocok berdasarkan kategori:', pesertaRows);
+    const { rows: pesertaRows } = await client.query(pesertaQuery, [
+      inovasi_id,
+      JURI_TAHAP_SELEKSI,
+      JURI_STATUS_SELEKSI,
+    ]);
 
     if (pesertaRows.length === 0) {
-      // tambahan debug: tampilkan isi data peserta yang ada
-      const debugPesertaQuery = `
-        SELECT id, nama_inovasi, kategori, nama_inisiator
-        FROM data_peserta
-        ORDER BY id ASC
-      `;
-      const { rows: semuaPeserta } = await client.query(debugPesertaQuery);
-
-      console.log('[DEBUG] semua data peserta:', semuaPeserta);
-
       throw new Error('PESERTA_BY_INOVASI_NOT_FOUND');
     }
 
@@ -167,6 +202,7 @@ export const deletePenugasanById = async (id) => {
 export default {
   getAllPenugasan,
   getPenugasanByJuri,
+  getEligiblePesertaById,
   createPenugasan,
   createPenugasanByInovasi,
   deletePenugasanById,
