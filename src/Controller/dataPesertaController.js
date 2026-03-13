@@ -44,7 +44,6 @@ const finalStatusSeleksiOptions = [
   'Harapan 1',
   'Harapan 2',
   'Harapan 3',
-  'Finalis',
 ];
 
 const PDF_COLS = ['anggaran_pdf', 'profil_bisnis_pdf', 'dokumen_haki_pdf', 'penghargaan_pdf', 'proposal_pdf'];
@@ -78,6 +77,19 @@ const extractPublicIdFromCloudinaryUrl = (url) => {
   return path;
 };
 
+const validateNoHp = (value) => {
+  const errors = [];
+  if (value === undefined || value === null || value === '') return errors;
+
+  const cleaned = String(value).trim();
+
+  if (!/^[0-9+]{10,20}$/.test(cleaned)) {
+    errors.push('no_hp harus berisi angka dan boleh diawali +, panjang 10-20 karakter');
+  }
+
+  return errors;
+};
+
 // untuk dashboard participant: semua data, tapi kolom dibatasi
 const filterColumnsForParticipant = (record) => {
   const allowedCols = [
@@ -91,6 +103,9 @@ const filterColumnsForParticipant = (record) => {
     'waktu_penerapan',
     'waktu_pengembangan',
     'link_video',
+    'no_hp',
+    'kebaruan',
+    'penjelasan_singkat_kebaruan',
     'created_at',
     'tahap_seleksi',
     'status_seleksi',
@@ -228,6 +243,9 @@ export const createDataPesertaHandler = async (req, res) => {
       manfaat_diperoleh,
       hasil_inovasi,
       link_video,
+      no_hp,
+      kebaruan,
+      penjelasan_singkat_kebaruan,
     } = req.body;
 
     const kategoriValue = String(kategori ?? '');
@@ -245,6 +263,16 @@ export const createDataPesertaHandler = async (req, res) => {
     errors.push(...validateOptionalString(urusan_utama, 'urusan_utama'));
     errors.push(...validateOptionalString(urusan_beririsan, 'urusan_beririsan', 255));
     errors.push(...validateOptionalString(link_video, 'link_video', 1000));
+
+    errors.push(...validateNoHp(no_hp));
+    errors.push(...validateOptionalString(kebaruan, 'kebaruan', 10000));
+    errors.push(
+      ...validateOptionalString(
+        penjelasan_singkat_kebaruan,
+        'penjelasan_singkat_kebaruan',
+        10000
+      )
+    );
 
     errors.push(...validateOptionalDate(waktu_uji_coba, 'waktu_uji_coba'));
     errors.push(...validateOptionalDate(waktu_penerapan, 'waktu_penerapan'));
@@ -281,6 +309,9 @@ export const createDataPesertaHandler = async (req, res) => {
       manfaat_diperoleh,
       hasil_inovasi,
       link_video: link_video || null,
+      no_hp: no_hp || null,
+      kebaruan: kebaruan || null,
+      penjelasan_singkat_kebaruan: penjelasan_singkat_kebaruan || null,
 
       anggaran_pdf: uploaded.anggaran_pdf?.url || null,
       profil_bisnis_pdf: uploaded.profil_bisnis_pdf?.url || null,
@@ -351,6 +382,9 @@ export const updateDataPesertaHandler = async (req, res) => {
       manfaat_diperoleh,
       hasil_inovasi,
       link_video,
+      no_hp,
+      kebaruan,
+      penjelasan_singkat_kebaruan,
     } = req.body;
 
     const normalizeEmptyToNull = (value) => {
@@ -367,6 +401,11 @@ export const updateDataPesertaHandler = async (req, res) => {
     const normalizedWaktuPenerapan = normalizeEmptyToNull(waktu_penerapan);
     const normalizedWaktuPengembangan = normalizeEmptyToNull(waktu_pengembangan);
     const normalizedLinkVideo = normalizeEmptyToNull(link_video);
+    const normalizedNoHp = normalizeEmptyToNull(no_hp);
+    const normalizedKebaruan = normalizeEmptyToNull(kebaruan);
+    const normalizedPenjelasanSingkatKebaruan = normalizeEmptyToNull(
+      penjelasan_singkat_kebaruan
+    );
 
     const errors = [];
     const kategoriOptions = await getKategoriOptions();
@@ -413,6 +452,24 @@ export const updateDataPesertaHandler = async (req, res) => {
 
     if (link_video !== undefined) {
       errors.push(...validateOptionalString(normalizedLinkVideo, 'link_video', 1000));
+    }
+
+    if (no_hp !== undefined) {
+      errors.push(...validateNoHp(normalizedNoHp));
+    }
+
+    if (kebaruan !== undefined) {
+      errors.push(...validateOptionalString(normalizedKebaruan, 'kebaruan', 10000));
+    }
+
+    if (penjelasan_singkat_kebaruan !== undefined) {
+      errors.push(
+        ...validateOptionalString(
+          normalizedPenjelasanSingkatKebaruan,
+          'penjelasan_singkat_kebaruan',
+          10000
+        )
+      );
     }
 
     if (waktu_uji_coba !== undefined) {
@@ -467,6 +524,12 @@ export const updateDataPesertaHandler = async (req, res) => {
     assignIfDefined('urusan_utama', urusan_utama);
     assignIfDefined('urusan_beririsan', urusan_beririsan);
     assignIfDefined('link_video', normalizedLinkVideo);
+    assignIfDefined('no_hp', normalizedNoHp);
+    assignIfDefined('kebaruan', normalizedKebaruan);
+    assignIfDefined(
+      'penjelasan_singkat_kebaruan',
+      normalizedPenjelasanSingkatKebaruan
+    );
     assignIfDefined('waktu_uji_coba', normalizedWaktuUjiCoba);
     assignIfDefined('waktu_penerapan', normalizedWaktuPenerapan);
     assignIfDefined('waktu_pengembangan', normalizedWaktuPengembangan);
@@ -543,12 +606,14 @@ export const updateSeleksiPesertaHandler = async (req, res) => {
       errors.push(...validateEnum(status_seleksi, 'status_seleksi', regularStatusSeleksiOptions));
     }
 
-    // validasi tambahan agar status juara/harapan tidak dipakai di tahap selain final
-    if (tahap_seleksi !== 'final' && finalStatusSeleksiOptions.includes(status_seleksi) && status_seleksi !== 'Diproses') {
+    if (
+      tahap_seleksi !== 'final' &&
+      finalStatusSeleksiOptions.includes(status_seleksi) &&
+      status_seleksi !== 'Diproses'
+    ) {
       errors.push('Status juara/finalis hanya boleh digunakan pada tahap final');
     }
 
-    // validasi tambahan agar tahap final tidak pakai status Lolos / Tidak Lolos
     if (tahap_seleksi === 'final' && ['Lolos', 'Tidak Lolos'].includes(status_seleksi)) {
       errors.push('Pada tahap final gunakan status Juara, Harapan, atau Finalis');
     }
