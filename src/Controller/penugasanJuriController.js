@@ -1,11 +1,13 @@
 import {
   getAllPenugasan,
   getPenugasanByJuri,
+  getPesertaByIdForPenugasan,
   createPenugasan,
   createPenugasanByInovasi,
   deletePenugasanById,
-  getEligiblePesertaById,
 } from '../Models/penugasanJuriModel.js';
+
+const JURI_TAHAP_MULAI_NILAI = 'administratif';
 
 const formatErrorResponse = (errors, message = 'Validasi gagal') => ({
   message,
@@ -104,20 +106,29 @@ export const createPenugasanHandler = async (req, res) => {
         .json(formatErrorResponse(errors, 'Validasi penugasan juri gagal'));
     }
 
-    const pesertaEligible = await getEligiblePesertaById(Number(peserta_id));
+    const peserta = await getPesertaByIdForPenugasan(Number(peserta_id));
 
-    if (!pesertaEligible) {
+    if (!peserta) {
+      return res.status(404).json(
+        formatErrorResponse(
+          ['Peserta tidak ditemukan'],
+          'Data tidak ditemukan'
+        )
+      );
+    }
+
+    if (peserta.tahap_seleksi !== JURI_TAHAP_MULAI_NILAI) {
       return res.status(400).json(
         formatErrorResponse(
           [
-            'Peserta tidak memenuhi syarat untuk penugasan juri. Pastikan peserta sudah masuk tahap semifinal dan status seleksi masih Diproses.',
+            `Peserta belum bisa dinilai juri. Peserta harus berada pada tahap seleksi "${JURI_TAHAP_MULAI_NILAI}".`,
           ],
           'Validasi penugasan juri gagal'
         )
       );
     }
 
-    if (Number(pesertaEligible.kategori) !== Number(inovasi_id)) {
+    if (Number(peserta.kategori) !== Number(inovasi_id)) {
       return res.status(400).json(
         formatErrorResponse(
           ['inovasi_id tidak sesuai dengan kategori peserta'],
@@ -220,7 +231,7 @@ export const createPenugasanByInovasiHandler = async (req, res) => {
       return res.status(404).json(
         formatErrorResponse(
           [
-            'Tidak ada peserta yang cocok dengan inovasi ini dan memenuhi syarat penilaian juri',
+            'Tidak ada peserta pada kategori inovasi ini yang sudah masuk tahap administratif',
           ],
           'Data tidak ditemukan'
         )

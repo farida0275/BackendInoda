@@ -1,7 +1,6 @@
 import pool from '../config/db.js';
 
-const JURI_TAHAP_SELEKSI = 'semifinal';
-const JURI_STATUS_SELEKSI = 'Diproses';
+const JURI_TAHAP_MULAI_NILAI = 'administratif';
 
 export const getAllPenugasan = async () => {
   const q = `
@@ -57,18 +56,13 @@ export const getPenugasanByJuri = async (juriId) => {
     JOIN inovasi inv ON pj.inovasi_id = inv.id
     WHERE pj.juri_id = $1
       AND dp.tahap_seleksi = $2
-      AND dp.status_seleksi = $3
     ORDER BY pj.id DESC
   `;
-  const { rows } = await pool.query(q, [
-    juriId,
-    JURI_TAHAP_SELEKSI,
-    JURI_STATUS_SELEKSI,
-  ]);
+  const { rows } = await pool.query(q, [juriId, JURI_TAHAP_MULAI_NILAI]);
   return rows;
 };
 
-export const getEligiblePesertaById = async (pesertaId) => {
+export const getPesertaByIdForPenugasan = async (pesertaId) => {
   const q = `
     SELECT
       id,
@@ -79,15 +73,9 @@ export const getEligiblePesertaById = async (pesertaId) => {
       status_seleksi
     FROM data_peserta
     WHERE id = $1
-      AND tahap_seleksi = $2
-      AND status_seleksi = $3
     LIMIT 1
   `;
-  const { rows } = await pool.query(q, [
-    pesertaId,
-    JURI_TAHAP_SELEKSI,
-    JURI_STATUS_SELEKSI,
-  ]);
+  const { rows } = await pool.query(q, [pesertaId]);
   return rows[0];
 };
 
@@ -146,13 +134,11 @@ export const createPenugasanByInovasi = async ({
       FROM data_peserta
       WHERE kategori = $1
         AND tahap_seleksi = $2
-        AND status_seleksi = $3
       ORDER BY id ASC
     `;
     const { rows: pesertaRows } = await client.query(pesertaQuery, [
       inovasi_id,
-      JURI_TAHAP_SELEKSI,
-      JURI_STATUS_SELEKSI,
+      JURI_TAHAP_MULAI_NILAI,
     ]);
 
     if (pesertaRows.length === 0) {
@@ -202,7 +188,7 @@ export const deletePenugasanById = async (id) => {
 export default {
   getAllPenugasan,
   getPenugasanByJuri,
-  getEligiblePesertaById,
+  getPesertaByIdForPenugasan,
   createPenugasan,
   createPenugasanByInovasi,
   deletePenugasanById,

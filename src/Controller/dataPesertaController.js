@@ -33,7 +33,19 @@ const getKategoriOptions = async () => {
 };
 
 const tahapSeleksiOptions = ['all', 'administratif', 'semifinal', 'final'];
-const statusSeleksiOptions = ['Diproses', 'Lolos', 'Tidak Lolos'];
+
+const regularStatusSeleksiOptions = ['Diproses', 'Lolos', 'Tidak Lolos'];
+
+const finalStatusSeleksiOptions = [
+  'Diproses',
+  'Juara 1',
+  'Juara 2',
+  'Juara 3',
+  'Harapan 1',
+  'Harapan 2',
+  'Harapan 3',
+  'Finalis',
+];
 
 const PDF_COLS = ['anggaran_pdf', 'profil_bisnis_pdf', 'dokumen_haki_pdf', 'penghargaan_pdf', 'proposal_pdf'];
 
@@ -188,7 +200,6 @@ export const createDataPesertaHandler = async (req, res) => {
   try {
     const uploaded = req.uploadedFiles || {};
 
-    // Validasi file yang wajib diupload
     const errors = [];
     if (!uploaded.proposal_pdf) {
       errors.push('File proposal_pdf wajib diupload');
@@ -509,13 +520,9 @@ export const updateSeleksiPesertaHandler = async (req, res) => {
       );
     }
 
-    const errors = [];
-    errors.push(...validateEnum(tahap_seleksi, 'tahap_seleksi', tahapSeleksiOptions));
-    errors.push(...validateEnum(status_seleksi, 'status_seleksi', statusSeleksiOptions));
-
-    if (errors.length > 0) {
-      return res.status(400).json(
-        formatErrorResponse(errors, 'Validasi seleksi peserta gagal')
+    if (!isAdmin(req.user)) {
+      return res.status(403).json(
+        formatErrorResponse(['Hanya admin yang dapat mengubah seleksi peserta'], 'Forbidden')
       );
     }
 
@@ -526,9 +533,29 @@ export const updateSeleksiPesertaHandler = async (req, res) => {
       );
     }
 
-    if (!isAdmin(req.user)) {
-      return res.status(403).json(
-        formatErrorResponse(['Hanya admin yang dapat mengubah seleksi peserta'], 'Forbidden')
+    const errors = [];
+
+    errors.push(...validateEnum(tahap_seleksi, 'tahap_seleksi', tahapSeleksiOptions));
+
+    if (tahap_seleksi === 'final') {
+      errors.push(...validateEnum(status_seleksi, 'status_seleksi', finalStatusSeleksiOptions));
+    } else {
+      errors.push(...validateEnum(status_seleksi, 'status_seleksi', regularStatusSeleksiOptions));
+    }
+
+    // validasi tambahan agar status juara/harapan tidak dipakai di tahap selain final
+    if (tahap_seleksi !== 'final' && finalStatusSeleksiOptions.includes(status_seleksi) && status_seleksi !== 'Diproses') {
+      errors.push('Status juara/finalis hanya boleh digunakan pada tahap final');
+    }
+
+    // validasi tambahan agar tahap final tidak pakai status Lolos / Tidak Lolos
+    if (tahap_seleksi === 'final' && ['Lolos', 'Tidak Lolos'].includes(status_seleksi)) {
+      errors.push('Pada tahap final gunakan status Juara, Harapan, atau Finalis');
+    }
+
+    if (errors.length > 0) {
+      return res.status(400).json(
+        formatErrorResponse(errors, 'Validasi seleksi peserta gagal')
       );
     }
 
