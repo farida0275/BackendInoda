@@ -19,6 +19,7 @@ create table Inovasi(
 CREATE TABLE data_peserta (
   id SERIAL PRIMARY KEY,
   nama_inovasi VARCHAR(255) NOT NULL,
+  no_hp varchar(20) NOT NULL,
   tahapan_inovasi VARCHAR(20) NOT NULL CHECK (
     tahapan_inovasi IN ('Inisiatif','Uji Coba','Penerapan')
   ),
@@ -42,6 +43,10 @@ CREATE TABLE data_peserta (
   tujuan_inovasi TEXT,
   manfaat_diperoleh TEXT,
   hasil_inovasi TEXT,
+  kebaruan TEXT,
+  penjelasan_singkat_kebaruan TEXT,
+  indikator_kebaruan TEXT,
+  link_video TEXT,
   anggaran_pdf VARCHAR(255),
   profil_bisnis_pdf VARCHAR(255),
   dokumen_haki_pdf VARCHAR(255),

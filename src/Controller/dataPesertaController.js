@@ -46,7 +46,13 @@ const finalStatusSeleksiOptions = [
   'Harapan 3',
 ];
 
-const PDF_COLS = ['anggaran_pdf', 'profil_bisnis_pdf', 'dokumen_haki_pdf', 'penghargaan_pdf', 'proposal_pdf'];
+const PDF_COLS = [
+  'anggaran_pdf',
+  'profil_bisnis_pdf',
+  'dokumen_haki_pdf',
+  'penghargaan_pdf',
+  'proposal_pdf',
+];
 
 const isAdmin = (user) => user?.role === 'admin';
 const isJuri = (user) => user?.role === 'juri';
@@ -95,6 +101,7 @@ const filterColumnsForParticipant = (record) => {
   const allowedCols = [
     'id',
     'nama_inovasi',
+    'indikator_daerah',
     'kategori',
     'tahapan_inovasi',
     'urusan_utama',
@@ -128,9 +135,8 @@ export const getDataPesertas = async (req, res) => {
     const isUserAdmin = req.user?.role === 'admin';
     const isUserJuri = req.user?.role === 'juri';
 
-    const filteredList = (isUserAdmin || isUserJuri)
-      ? list
-      : list.map(filterColumnsForParticipant);
+    const filteredList =
+      isUserAdmin || isUserJuri ? list : list.map(filterColumnsForParticipant);
 
     return res.json({
       message: 'Daftar data peserta berhasil diambil',
@@ -141,7 +147,10 @@ export const getDataPesertas = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json(
-      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
     );
   }
 };
@@ -169,7 +178,10 @@ export const getMySubmissions = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json(
-      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
     );
   }
 };
@@ -188,7 +200,10 @@ export const getDataPesertaDetail = async (req, res) => {
     const record = await getDataPesertaById(id);
     if (!record) {
       return res.status(404).json(
-        formatErrorResponse([`Data peserta dengan ID ${id} tidak ditemukan`], 'Data tidak ditemukan')
+        formatErrorResponse(
+          [`Data peserta dengan ID ${id} tidak ditemukan`],
+          'Data tidak ditemukan'
+        )
       );
     }
 
@@ -206,7 +221,10 @@ export const getDataPesertaDetail = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json(
-      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
     );
   }
 };
@@ -225,6 +243,7 @@ export const createDataPesertaHandler = async (req, res) => {
 
     const {
       nama_inovasi,
+      indikator_daerah,
       kategori,
       tahapan_inovasi,
       inisiator_inovasi,
@@ -252,6 +271,7 @@ export const createDataPesertaHandler = async (req, res) => {
 
     const kategoriOptions = await getKategoriOptions();
     errors.push(...validateNama(nama_inovasi));
+    errors.push(...validateOptionalString(indikator_daerah, 'indikator_daerah', 10000));
     errors.push(...validateEnum(kategoriValue, 'kategori', kategoriOptions));
     errors.push(...validateEnum(tahapan_inovasi, 'tahapan_inovasi', tahapanOptions));
     errors.push(...validateEnum(inisiator_inovasi, 'inisiator_inovasi', inisiatorOptions));
@@ -291,6 +311,7 @@ export const createDataPesertaHandler = async (req, res) => {
 
     const payload = {
       nama_inovasi,
+      indikator_daerah: indikator_daerah || null,
       kategori: kategoriValue ? Number(kategoriValue) : null,
       tahapan_inovasi,
       inisiator_inovasi,
@@ -334,7 +355,10 @@ export const createDataPesertaHandler = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json(
-      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
     );
   }
 };
@@ -346,13 +370,18 @@ export const updateDataPesertaHandler = async (req, res) => {
 
     const idErrors = validateId(id);
     if (idErrors.length > 0) {
-      return res.status(400).json(formatErrorResponse(idErrors, 'Update gagal: ID tidak valid'));
+      return res.status(400).json(
+        formatErrorResponse(idErrors, 'Update gagal: ID tidak valid')
+      );
     }
 
     const existing = await getDataPesertaById(id);
     if (!existing) {
       return res.status(404).json(
-        formatErrorResponse([`Data peserta dengan ID ${id} tidak ditemukan`], 'Data tidak ditemukan')
+        formatErrorResponse(
+          [`Data peserta dengan ID ${id} tidak ditemukan`],
+          'Data tidak ditemukan'
+        )
       );
     }
 
@@ -364,6 +393,7 @@ export const updateDataPesertaHandler = async (req, res) => {
 
     const {
       nama_inovasi,
+      indikator_daerah,
       kategori,
       tahapan_inovasi,
       inisiator_inovasi,
@@ -397,6 +427,7 @@ export const updateDataPesertaHandler = async (req, res) => {
         ? Number(kategori)
         : undefined;
 
+    const normalizedIndikatorDaerah = normalizeEmptyToNull(indikator_daerah);
     const normalizedWaktuUjiCoba = normalizeEmptyToNull(waktu_uji_coba);
     const normalizedWaktuPenerapan = normalizeEmptyToNull(waktu_penerapan);
     const normalizedWaktuPengembangan = normalizeEmptyToNull(waktu_pengembangan);
@@ -412,6 +443,16 @@ export const updateDataPesertaHandler = async (req, res) => {
 
     if (nama_inovasi !== undefined) {
       errors.push(...validateNama(nama_inovasi));
+    }
+
+    if (indikator_daerah !== undefined) {
+      errors.push(
+        ...validateOptionalString(
+          normalizedIndikatorDaerah,
+          'indikator_daerah',
+          10000
+        )
+      );
     }
 
     if (kategori !== undefined) {
@@ -481,7 +522,9 @@ export const updateDataPesertaHandler = async (req, res) => {
     }
 
     if (waktu_pengembangan !== undefined) {
-      errors.push(...validateOptionalDate(normalizedWaktuPengembangan, 'waktu_pengembangan'));
+      errors.push(
+        ...validateOptionalDate(normalizedWaktuPengembangan, 'waktu_pengembangan')
+      );
     }
 
     if (skor_final !== undefined) {
@@ -514,6 +557,7 @@ export const updateDataPesertaHandler = async (req, res) => {
     };
 
     assignIfDefined('nama_inovasi', nama_inovasi);
+    assignIfDefined('indikator_daerah', normalizedIndikatorDaerah);
     assignIfDefined('kategori', kategoriValue);
     assignIfDefined('tahapan_inovasi', tahapan_inovasi);
     assignIfDefined('inisiator_inovasi', inisiator_inovasi);
@@ -548,7 +592,10 @@ export const updateDataPesertaHandler = async (req, res) => {
           try {
             await deleteCloudinaryRawByPublicId(oldPublicId);
           } catch (e) {
-            console.error(`Gagal hapus file lama (${col}) public_id=${oldPublicId}:`, e?.message || e);
+            console.error(
+              `Gagal hapus file lama (${col}) public_id=${oldPublicId}:`,
+              e?.message || e
+            );
           }
         }
 
@@ -566,7 +613,10 @@ export const updateDataPesertaHandler = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json(
-      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
     );
   }
 };
@@ -585,14 +635,20 @@ export const updateSeleksiPesertaHandler = async (req, res) => {
 
     if (!isAdmin(req.user)) {
       return res.status(403).json(
-        formatErrorResponse(['Hanya admin yang dapat mengubah seleksi peserta'], 'Forbidden')
+        formatErrorResponse(
+          ['Hanya admin yang dapat mengubah seleksi peserta'],
+          'Forbidden'
+        )
       );
     }
 
     const existing = await getDataPesertaById(id);
     if (!existing) {
       return res.status(404).json(
-        formatErrorResponse([`Data peserta dengan ID ${id} tidak ditemukan`], 'Data tidak ditemukan')
+        formatErrorResponse(
+          [`Data peserta dengan ID ${id} tidak ditemukan`],
+          'Data tidak ditemukan'
+        )
       );
     }
 
@@ -603,7 +659,9 @@ export const updateSeleksiPesertaHandler = async (req, res) => {
     if (tahap_seleksi === 'final') {
       errors.push(...validateEnum(status_seleksi, 'status_seleksi', finalStatusSeleksiOptions));
     } else {
-      errors.push(...validateEnum(status_seleksi, 'status_seleksi', regularStatusSeleksiOptions));
+      errors.push(
+        ...validateEnum(status_seleksi, 'status_seleksi', regularStatusSeleksiOptions)
+      );
     }
 
     if (
@@ -637,7 +695,10 @@ export const updateSeleksiPesertaHandler = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json(
-      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
     );
   }
 };
@@ -648,13 +709,18 @@ export const deleteDataPesertaHandler = async (req, res) => {
 
     const idErrors = validateId(id);
     if (idErrors.length > 0) {
-      return res.status(400).json(formatErrorResponse(idErrors, 'Hapus gagal: ID tidak valid'));
+      return res.status(400).json(
+        formatErrorResponse(idErrors, 'Hapus gagal: ID tidak valid')
+      );
     }
 
     const existing = await getDataPesertaById(id);
     if (!existing) {
       return res.status(404).json(
-        formatErrorResponse([`Data peserta dengan ID ${id} tidak ditemukan`], 'Data tidak ditemukan')
+        formatErrorResponse(
+          [`Data peserta dengan ID ${id} tidak ditemukan`],
+          'Data tidak ditemukan'
+        )
       );
     }
 
@@ -672,7 +738,10 @@ export const deleteDataPesertaHandler = async (req, res) => {
         try {
           await deleteCloudinaryRawByPublicId(oldPublicId);
         } catch (e) {
-          console.error(`Gagal hapus file (${col}) public_id=${oldPublicId}:`, e?.message || e);
+          console.error(
+            `Gagal hapus file (${col}) public_id=${oldPublicId}:`,
+            e?.message || e
+          );
         }
       }
     }
@@ -687,7 +756,10 @@ export const deleteDataPesertaHandler = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json(
-      formatErrorResponse(['Terjadi kesalahan pada server, silakan coba lagi'], 'Server error')
+      formatErrorResponse(
+        ['Terjadi kesalahan pada server, silakan coba lagi'],
+        'Server error'
+      )
     );
   }
 };
@@ -696,7 +768,10 @@ export const resetAllDataPesertaHandler = async (req, res) => {
   try {
     if (!isAdmin(req.user)) {
       return res.status(403).json(
-        formatErrorResponse(['Hanya admin yang dapat mereset semua data peserta'], 'Forbidden')
+        formatErrorResponse(
+          ['Hanya admin yang dapat mereset semua data peserta'],
+          'Forbidden'
+        )
       );
     }
 
@@ -732,7 +807,10 @@ export const resetAllDataPesertaHandler = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json(
-      formatErrorResponse(['Terjadi kesalahan saat reset semua data peserta'], 'Server error')
+      formatErrorResponse(
+        ['Terjadi kesalahan saat reset semua data peserta'],
+        'Server error'
+      )
     );
   }
 };
