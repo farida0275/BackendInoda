@@ -5,19 +5,30 @@ import authorizeRole from "../Middleware/authorizeRole.js";
 
 const router = express.Router();
 
-// ambil setting
-router.get("/", authenticate, authorizeRole("admin"), submissionSettingsController.getSetting);
+// GET boleh untuk semua user yang sudah login
+router.get("/", authenticate, submissionSettingsController.getSetting);
+router.get("/:id", authenticate, submissionSettingsController.getSettingById);
 
-// detail setting by id
-router.get("/:id", authenticate, authorizeRole("admin"), submissionSettingsController.getSettingById);
+// POST/PUT/DELETE tetap khusus admin
+router.post(
+  "/",
+  authenticate,
+  authorizeRole("admin"),
+  submissionSettingsController.createSetting
+);
 
-// create setting
-router.post("/", authenticate, authorizeRole("admin"), submissionSettingsController.createSetting);
+router.put(
+  "/:id",
+  authenticate,
+  authorizeRole("admin"),
+  submissionSettingsController.updateSetting
+);
 
-// update setting
-router.put("/:id", authenticate, authorizeRole("admin"), submissionSettingsController.updateSetting);
-
-// delete setting
-router.delete("/:id", authenticate, authorizeRole("admin"), submissionSettingsController.deleteSetting);
+router.delete(
+  "/:id",
+  authenticate,
+  authorizeRole("admin"),
+  submissionSettingsController.deleteSetting
+);
 
 export default router;

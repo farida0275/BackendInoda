@@ -1,5 +1,10 @@
 import submissionSettingsModel from "../Models/submissionSettingsModel.js";
 
+const isValidDate = (value) => {
+  const d = new Date(value);
+  return !Number.isNaN(d.getTime());
+};
+
 const getSetting = async (req, res) => {
   try {
     const setting = await submissionSettingsModel.getSubmissionSetting();
@@ -73,6 +78,18 @@ const createSetting = async (req, res) => {
       });
     }
 
+    if (
+      !isValidDate(registration_start) ||
+      !isValidDate(registration_end) ||
+      !isValidDate(edit_start) ||
+      !isValidDate(edit_end)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Format tanggal tidak valid",
+      });
+    }
+
     if (new Date(registration_start) > new Date(registration_end)) {
       return res.status(400).json({
         success: false,
@@ -139,6 +156,18 @@ const updateSetting = async (req, res) => {
       });
     }
 
+    if (
+      !isValidDate(registration_start) ||
+      !isValidDate(registration_end) ||
+      !isValidDate(edit_start) ||
+      !isValidDate(edit_end)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Format tanggal tidak valid",
+      });
+    }
+
     if (new Date(registration_start) > new Date(registration_end)) {
       return res.status(400).json({
         success: false,
@@ -153,7 +182,8 @@ const updateSetting = async (req, res) => {
       });
     }
 
-    const existingSetting = await submissionSettingsModel.getSubmissionSettingById(id);
+    const existingSetting =
+      await submissionSettingsModel.getSubmissionSettingById(id);
 
     if (!existingSetting) {
       return res.status(404).json({
@@ -162,12 +192,15 @@ const updateSetting = async (req, res) => {
       });
     }
 
-    const updatedSetting = await submissionSettingsModel.updateSubmissionSetting(id, {
-      registration_start,
-      registration_end,
-      edit_start,
-      edit_end,
-    });
+    const updatedSetting = await submissionSettingsModel.updateSubmissionSetting(
+      id,
+      {
+        registration_start,
+        registration_end,
+        edit_start,
+        edit_end,
+      }
+    );
 
     return res.status(200).json({
       success: true,
@@ -187,7 +220,8 @@ const deleteSetting = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existingSetting = await submissionSettingsModel.getSubmissionSettingById(id);
+    const existingSetting =
+      await submissionSettingsModel.getSubmissionSettingById(id);
 
     if (!existingSetting) {
       return res.status(404).json({
@@ -196,7 +230,9 @@ const deleteSetting = async (req, res) => {
       });
     }
 
-    const deletedSetting = await submissionSettingsModel.deleteSubmissionSetting(id);
+    const deletedSetting = await submissionSettingsModel.deleteSubmissionSetting(
+      id
+    );
 
     return res.status(200).json({
       success: true,

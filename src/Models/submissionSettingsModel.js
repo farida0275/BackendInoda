@@ -11,7 +11,7 @@ const getSubmissionSetting = async () => {
       created_at,
       updated_at
     FROM submission_settings
-    ORDER BY id ASC
+    ORDER BY id DESC
     LIMIT 1
   `;
 
